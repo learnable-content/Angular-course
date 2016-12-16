@@ -1,0 +1,31 @@
+.today {
+    float: left;
+    width: 75%;
+    background-color: #eeeeee;
+    flex-wrap: wrap;
+    padding: 1rem;
+}
+
+.today .date {
+}
+
+.more-events {
+    float: left;
+    width: 15%;
+    padding: 1rem;
+    border-left: 1px solid #aaaaaa;
+}
+
+.events-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+}
+
+.events-container event-view,
+.events-container sponsored-event {
+    flex-grow: 1;
+    padding: 1rem;
+    max-width: 200px;
+    overflow: hidden;
+}

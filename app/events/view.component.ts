@@ -1,27 +1,28 @@
 import { Component, Input } from '@angular/core';
-
-interface Event {
-    address: string,
-    category: string,
-    cover_photo_url: string,
-    currency: string,
-    description: string,
-    formatted_duration: string,
-    formatted_price: string,
-    host_image_url: string,
-    host_name: string,
-    image_url: string,
-    location: string,
-    price: number,
-    ticket_url: string,
-    title: string
-}
+import { AnalyticsService } from '../shared/analytics.service';
+import { Event } from '../shared/event';
 
 @Component({
     selector: 'event-view',
-    template: require('./view.template.html')
+    template: require('./view.template.html'),
+    providers: [AnalyticsService]
 })
-
 export class EventViewComponent {
-    @Input() event: Event;
+    constructor (private analytics: AnalyticsService) {
+    }
+
+    @Input() event;
+
+    onClick(): boolean {
+        this.analytics.event('click', 'event', this.event.url);
+        return true;
+    }
+
+    imageUrl(): string {
+        return this.event.image_url.replace('160x160', '150x150');
+    }
+
+    isFree(): boolean {
+        return !this.event.price;
+    }
 }

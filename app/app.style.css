@@ -1,0 +1,22 @@
+.heading {
+    font-size: 48px;
+}
+
+.content {
+}
+
+nav a {
+    text-decoration: none;
+    padding: 1rem 2rem;
+    font-size: 20px;
+}
+
+nav a,
+nav a:visited {
+    color: blue;
+}
+
+nav .active {
+    font-weight: bold;
+    box-shadow: 0px 3px 10px #cccccc;
+}

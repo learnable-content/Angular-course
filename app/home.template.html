@@ -1,0 +1,19 @@
+<h2>Check out cool events in London, UK!</h2>
+<section class="today">
+  <h3 class="date">{{today}}</h3>
+  <section class="events-container">
+    <template ngFor let-event [ngForOf]="events" let-i="index">
+      <sponsored-event *ngIf="hasAdAtIndex(i)" [ad]="getAdAtIndex(i)"></sponsored-event>
+      <event-view [event]="event"></event-view>
+    </template>
+  </section>
+</section>
+
+<section class="more-events">
+  <h3>More Events</h3>
+  <section class="events-container">
+    <template ngFor let-event [ngForOf]="moreEvents">
+      <event-view [event]="event"></event-view>
+    </template>
+  </section>
+</section>

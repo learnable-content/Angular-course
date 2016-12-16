@@ -2,11 +2,8 @@ import { Component } from '@angular/core';
 
 @Component({
     selector: "my-app",
-    template: "<event-view event={{event}}></event-view>"
+    template: require('./app.template.html'),
+    styles: [require('./app.style.css')]
 })
-
 export class AppComponent {
-    event: {
-        title: "Hello World!"
-    }
 };

@@ -1,11 +1,12 @@
 var webpack = require('webpack');
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 var ExtractTextPlugin = require('extract-text-webpack-plugin');
+var CopyWebpackPlugin = require('copy-webpack-plugin');
 var DebugWebpackPlugin = require('debug-webpack-plugin');
 var path = require('path');
 
 module.exports = {
-  devtool: 'source-map',
+  //devtool: 'source-map',
   entry: {
     'polyfills': './app/polyfills.ts',
     'vendor': './app/vendor.ts',
@@ -28,7 +29,10 @@ module.exports = {
       {
         test: /\.css$/,
         exclude: path.resolve(__dirname + '/app'),
-        loader: ExtractTextPlugin.extract('style', 'css?sourceMap')
+        loader: ExtractTextPlugin.extract({
+          fallbackLoader: 'style-loader',
+          loader: 'css-loader'
+        })
       },
       {
         test: /\.(html|css)$/,
@@ -47,21 +51,23 @@ module.exports = {
     }),*/
     new webpack.optimize.CommonsChunkPlugin({
       name: [
-        'app',
         'vendor',
         'polyfills'
       ]
     }),
     new HtmlWebpackPlugin({
       template: 'index.html'
-    })
+    }),
+    new CopyWebpackPlugin([
+      {
+        from: 'assets',
+        to: 'assets'
+      }
+    ])
   ],
   resolve: {
     extensions: ['', '.ts', '.js'],
     moduleDirectories: ['node_modules'],
-    root: [
-      path.resolve(__dirname + './app'),
-      path.resolve(__dirname + './node_modules')
-    ]
+    root: path.resolve(__dirname)
   }
 };

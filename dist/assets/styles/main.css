@@ -1,0 +1,21 @@
+body {
+    padding: 0 1%;
+    margin: 0;
+    font-family: sans-serif;
+    font-size: 16px;
+}
+
+.datatable {
+    height: 70vh;
+}
+
+.datatable.material .datatable-header {
+    background-color: #4e9a06;
+}
+
+.datatable.material .datatable-header .datatable-header-cell {
+    color: #ffffff;
+}
+.datatable.material .datatable-header .datatable-header-cell.sort-active {
+    background-color: #73d216;
+}

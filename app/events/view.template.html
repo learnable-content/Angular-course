@@ -1,1 +1,14 @@
-<h1>Hello world!</h1>
+<a href="{{event.ticket_url}}"
+   (click)="onClick()"
+   target="_blank">
+  <header>
+    <img width="150" height="150" src="{{imageUrl()}}" />
+    <div class="event-title">{{event.title}}</div>
+  </header>
+  <section>
+    <div class="event-location">{{event.location}}</div>
+    <div>{{event.formatted_duration}}
+      <template ngIf="!isFree()">- {{event.formatted_price}}</template>
+    </div>
+  </section>
+</a>
