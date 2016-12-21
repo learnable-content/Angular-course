@@ -29,7 +29,7 @@ export class HomeComponent implements OnInit {
         }
         return {
             title: 'Sponsored Event',
-            image_url: '/assets/images/ad-150x150.png',
+            image_url: '/assets/images/placeholder-150x150.png',
             url: 'http://localhost:3000/events'
         }
     }
