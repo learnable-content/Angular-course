@@ -47,11 +47,11 @@ module.exports = {
     /*new DebugWebpackPlugin({
       debug: true
     }),*/
-    new webpack.optimize.CommonsChunkPlugin({
-      name: [
-        'vendor',
-        'polyfills'
-      ]
+    new webpack.optimize.UglifyJsPlugin({
+      compress: {
+        warnings: false
+      },
+      mangle: false
     }),
     new HtmlWebpackPlugin({
       template: 'index.html'
