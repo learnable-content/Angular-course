@@ -8,8 +8,6 @@ var path = require('path');
 module.exports = {
   //devtool: 'source-map',
   entry: {
-    'polyfills': './app/polyfills.ts',
-    'vendor': './app/vendor.ts',
     'app': './app/main.ts'
   },
   module: {
