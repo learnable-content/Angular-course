@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { AnalyticsService } from '../shared/analytics.service';
-import { Event } from '../shared/event';
+import { UniverseEvent } from '../shared/universe-event';
 
 @Component({
     selector: 'event-view',
@@ -11,7 +11,7 @@ export class EventViewComponent {
     constructor (private analytics: AnalyticsService) {
     }
 
-    @Input() event;
+    @Input() event: UniverseEvent;
 
     onClick(): boolean {
         this.analytics.event('click', 'event', this.event.url);

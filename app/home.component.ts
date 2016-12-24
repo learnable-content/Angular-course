@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Ad } from './shared/ad';
-import { Event, exampleEvent } from './shared/event';
+import { UniverseEvent } from './shared/universe-event';
 import { UniverseService } from './shared/universe.service';
 
 @Component({
@@ -38,7 +38,7 @@ export class HomeComponent implements OnInit {
         return i % 3 === 0;
     }
 
-    private events: any[];
-    private moreEvents: any[];
     private ads: any[];
+    private events: UniverseEvent[];
+    private moreEvents: UniverseEvent[];
 };
