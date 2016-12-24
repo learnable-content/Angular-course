@@ -1,14 +1,18 @@
 <a href="{{event.ticket_url}}"
    (click)="onClick()"
    target="_blank">
-  <header>
-    <img width="150" height="150" src="{{imageUrl()}}" />
+  <header class="event-info">
+    <img class="event-image" width="150" height="150" src="{{imageUrl()}}" />
     <div class="event-title">{{event.title}}</div>
   </header>
-  <section>
+  <section class="event-more-info">
     <div class="event-location">{{event.location}}</div>
-    <div>{{event.formatted_duration}}
-      <template ngIf="!isFree()">- {{event.formatted_price}}</template>
+    <div class="event-description">
+      {{event.formatted_duration}}
+      <template ngIf="!isFree()">
+        <br/>
+        {{event.formatted_price}}
+      </template>
     </div>
   </section>
 </a>

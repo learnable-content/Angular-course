@@ -1,0 +1,18 @@
+.event-image {
+    border: 1px solid #c8e7ea;
+}
+
+.event-title {
+    color: #00aa4f;
+    font-size: 1.1em;
+    font-weight: bold;
+}
+
+.event-more-info {
+    color: #333333;
+}
+
+.event-description {
+    margin-top: 1em;
+    font-size: 0.9em;
+}

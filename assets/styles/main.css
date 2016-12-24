@@ -1,7 +1,7 @@
 body {
     padding: 0 1%;
     margin: 0;
-    font-family: sans-serif;
+    font-family: "Helvetica Neue", "Calibri Light", Roboto, sans-serif;
     font-size: 16px;
 }
 
@@ -18,4 +18,13 @@ body {
 }
 .datatable.material .datatable-header .datatable-header-cell.sort-active {
     background-color: #73d216;
+}
+
+a {
+    text-decoration: none;
+}
+
+a,
+a:visited {
+    color: blue;
 }

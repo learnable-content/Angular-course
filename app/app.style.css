@@ -1,19 +1,18 @@
 .heading {
-    font-size: 48px;
+    font-size: 3em;
+    color: #00aa4f;
 }
 
 .content {
 }
 
-nav a {
-    text-decoration: none;
-    padding: 1rem 2rem;
-    font-size: 20px;
+nav {
+    border-bottom: 2px solid #b2cb7a;
 }
 
-nav a,
-nav a:visited {
-    color: blue;
+nav a {
+    padding: 1rem 2rem;
+    font-size: 20px;
 }
 
 nav .active {

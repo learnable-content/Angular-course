@@ -5,6 +5,7 @@ import { UniverseEvent } from '../shared/universe-event';
 @Component({
     selector: 'event-view',
     template: require('./view.template.html'),
+    styles: [require('./view.style.css')],
     providers: [AnalyticsService]
 })
 export class EventViewComponent {

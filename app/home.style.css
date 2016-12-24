@@ -1,7 +1,6 @@
 .today {
     float: left;
     width: 75%;
-    background-color: #eeeeee;
     flex-wrap: wrap;
     padding: 1rem;
 }
@@ -13,7 +12,7 @@
     float: left;
     width: 15%;
     padding: 1rem;
-    border-left: 1px solid #aaaaaa;
+    border-left: 1px solid #86a09d;
 }
 
 .events-container {
