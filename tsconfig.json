@@ -8,7 +8,7 @@
     ],
     "module": "commonjs",
     "moduleResolution": "node",
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "sourceMap": true,
     "suppressImplicitAnyIndexErrors": true,
     "target": "es5"

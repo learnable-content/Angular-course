@@ -38,7 +38,7 @@ export class HomeComponent implements OnInit {
         return i % 3 === 0;
     }
 
-    private ads: any[];
     private events: UniverseEvent[];
     private moreEvents: UniverseEvent[];
+    private ads: Ad[];
 };
