@@ -14,7 +14,7 @@ export class EventViewComponent {
     @Input() event: UniverseEvent;
 
     onClick(): boolean {
-        this.analytics.event('click', 'event', this.event.url);
+        this.analytics.event('click', 'event', this.event.ticket_url);
         return true;
     }
 
@@ -26,3 +26,4 @@ export class EventViewComponent {
         return !this.event.price;
     }
 }
+
