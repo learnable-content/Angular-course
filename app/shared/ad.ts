@@ -1,5 +1,5 @@
 export interface Ad {
-    image_url: string,
-    title: string,
-    url: string
+    image_url: string;
+    title: string;
+    url: string;
 }

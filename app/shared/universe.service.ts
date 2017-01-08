@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core';
-import { Http, Response } from '@angular/http';
+import { Injectable } from "@angular/core";
+import { Http, Response } from "@angular/http";
 
 @Injectable()
 export class UniverseService {
@@ -7,7 +7,7 @@ export class UniverseService {
     private latitude = 51.50735;
     private longitude = -0.12776;
 
-    private apiUrl = 'https://discover.universe.com/api/v2/discover_events';
+    private apiUrl = "https://discover.universe.com/api/v2/discover_events";
 
     constructor (private http: Http) {
     }

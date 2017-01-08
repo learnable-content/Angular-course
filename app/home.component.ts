@@ -1,11 +1,11 @@
-import { Component, OnInit } from '@angular/core';
-import { Ad } from './shared/ad';
-import { UniverseEvent } from './shared/universe-event';
-import { UniverseService } from './shared/universe.service';
+import { Component, OnInit } from "@angular/core";
+import { Ad } from "./shared/ad";
+import { UniverseEvent } from "./shared/universe-event";
+import { UniverseService } from "./shared/universe.service";
 
 @Component({
-    template: require('./home.template.html'),
-    styles: [require('./home.style.css')],
+    template: require("./home.template.html"),
+    styles: [require("./home.style.css")],
     providers: [UniverseService]
 })
 export class HomeComponent implements OnInit {
@@ -28,10 +28,10 @@ export class HomeComponent implements OnInit {
             return null;
         }
         return {
-            title: 'Sponsored Event',
-            image_url: '/assets/images/placeholder-150x150.png',
-            url: 'http://localhost:3000/events'
-        }
+            title: "Sponsored Event",
+            image_url: "/assets/images/placeholder-150x150.png",
+            url: "http://localhost:3000/events"
+        };
     }
 
     hasAdAtIndex(i: number): boolean {

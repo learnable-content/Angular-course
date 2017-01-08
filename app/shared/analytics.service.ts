@@ -1,8 +1,8 @@
-import { Injectable } from '@angular/core';
-import { Http, Response } from '@angular/http';
+import { Injectable } from "@angular/core";
+import { Http, Response } from "@angular/http";
 
-type EventType = 'click';
-type EventTarget = 'ad' | 'event';
+type EventType = "click";
+type EventTarget = "ad" | "event";
 
 @Injectable()
 export class AnalyticsService {
@@ -14,7 +14,7 @@ export class AnalyticsService {
     }
 
     report(): Promise<ReportDataRow[]> {
-        return this.http.get('/assets/report-data.json')
+        return this.http.get("/assets/report-data.json")
             .toPromise()
             .then(this.extractRows);
     }
@@ -26,8 +26,8 @@ export class AnalyticsService {
 };
 
 export interface ReportDataRow {
-    adClicks: number,
-    date: string,
-    eventClicks: number,
-    revenue: string
+    adClicks: number;
+    date: string;
+    eventClicks: number;
+    revenue: string;
 };

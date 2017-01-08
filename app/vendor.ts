@@ -1,10 +1,10 @@
-import '@angular/common';
-import '@angular/core';
-import '@angular/http';
-import '@angular/platform-browser';
-import '@angular/platform-browser-dynamic';
-import '@angular/router';
+import "@angular/common";
+import "@angular/core";
+import "@angular/http";
+import "@angular/platform-browser";
+import "@angular/platform-browser-dynamic";
+import "@angular/router";
 
-import 'rxjs';
+import "rxjs";
 
-import 'angular2-data-table';
+import "angular2-data-table";
