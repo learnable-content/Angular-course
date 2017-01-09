@@ -7,8 +7,8 @@ import { Angular2DataTableModule } from "angular2-data-table";
 
 import { AppComponent } from "./app.component";
 import { HomeComponent } from "./home.component";
-import { EventViewComponent } from "./events/view.component";
-import { AdViewComponent } from "./ads/view.component";
+import { EventViewComponent } from "./events/event-view.component";
+import { AdViewComponent } from "./ads/ad-view.component";
 import { AdReportComponent } from "./ads/report.component";
 
 const appRoutes: Routes = [

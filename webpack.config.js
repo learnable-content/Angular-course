@@ -7,6 +7,8 @@ var path = require('path');
 
 let isProduction = process.env.NODE_ENV === 'production';
 
+let extractLESS = new ExtractTextPlugin('[name].less');
+
 let plugins = [
   new webpack.DefinePlugin({
     PRODUCTION: JSON.stringify(isProduction)
@@ -20,7 +22,8 @@ let plugins = [
       from: 'assets',
       to: 'assets'
     }
-  ])
+  ]),
+  extractLESS
 ];
 
 if (isProduction) {
@@ -42,7 +45,6 @@ if (isProduction) {
 }
 
 module.exports = {
-  devtool: 'cheap-source-map',
   entry: {
     'vendor': ['./app/polyfills.ts', './app/vendor.ts'],
     'app': './app/main.ts'
@@ -68,6 +70,11 @@ module.exports = {
           fallbackLoader: 'style-loader',
           loader: 'css-loader'
         })
+      },
+      {
+        test: /\.less$/,
+        include: path.resolve(__dirname + '/app'),
+        loader: extractLESS.extract(['css', 'less'])
       },
       {
         test: /\.(html|css)$/,

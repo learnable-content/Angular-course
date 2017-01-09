@@ -5,7 +5,7 @@ import { AnalyticsService, ReportDataRow } from "../shared/analytics.service";
     selector: "ads-report",
     template: require("./report.template.html"),
     providers: [AnalyticsService],
-    styles: [require("./report.style.css")]
+    styles: [require("./report.style.less")]
 })
 export class AdReportComponent implements OnInit {
     constructor(private analytics: AnalyticsService) {

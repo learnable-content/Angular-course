@@ -5,7 +5,7 @@ import { UniverseService } from "./shared/universe.service";
 
 @Component({
     template: require("./home.template.html"),
-    styles: [require("./home.style.css")],
+    styles: [require("./home.style.less")],
     providers: [UniverseService]
 })
 export class HomeComponent implements OnInit {
