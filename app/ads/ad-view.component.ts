@@ -4,7 +4,7 @@ import { Ad } from "../shared/ad";
 
 @Component({
     selector: "sponsored-event",
-    template: require("./view.template.html"),
+    template: require("./ad-view.template.html"),
     providers: [AnalyticsService]
 })
 export class AdViewComponent {
