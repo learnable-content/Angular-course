@@ -38,7 +38,7 @@
   version "2.4.3"
   resolved "https://registry.yarnpkg.com/@angular/upgrade/-/upgrade-2.4.3.tgz#6c172e2ee287be49939ea64d4fcfe44265d8f0c2"
 
-"@types/angular@^1.5.20":
+"@types/angular@^1.6.1":
   version "1.6.1"
   resolved "https://registry.yarnpkg.com/@types/angular/-/angular-1.6.1.tgz#c42e6614171abc8c83089605aacaf434b0e22808"
   dependencies:
@@ -48,9 +48,9 @@
   version "2.0.39"
   resolved "https://registry.yarnpkg.com/@types/jquery/-/jquery-2.0.39.tgz#917fe65300dbc6ccbdfa7e2ee51159fbd29d7689"
 
-"@types/node@^6.0.52":
-  version "6.0.60"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-6.0.60.tgz#e7e134ebc674ae6ed93c36c767739b110d2c57fc"
+"@types/node@^7.0.0":
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-7.0.0.tgz#c081147b109da5f9c57af70571771be97ce9c0ba"
 
 abbrev@1:
   version "1.0.9"
@@ -3396,7 +3396,7 @@ tweetnacl@^0.14.3, tweetnacl@~0.14.0:
   version "0.14.5"
   resolved "https://registry.yarnpkg.com/tweetnacl/-/tweetnacl-0.14.5.tgz#5ae68177f192d4456269d108afa93ff8743f4f64"
 
-typescript@^2.1.4:
+typescript@^2.1.5:
   version "2.1.5"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.1.5.tgz#6fe9479e00e01855247cea216e7561bafcdbcd4a"
 
