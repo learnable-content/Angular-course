@@ -26,17 +26,18 @@ let plugins = [
   extractLESS
 ];
 
-if (isProduction) {
+if (isProduction) { /*
   plugins = plugins.concat([
     new webpack.optimize.UglifyJsPlugin({
       compress: {
         warnings: false
       },
+      mangle: false,
       comments: false,
       sourceMap: false
-    }),
+    })
   ]);
-} else {
+*/ } else {
   plugins = plugins.concat([
     new DebugWebpackPlugin({
       debug: true
@@ -73,8 +74,8 @@ module.exports = {
       },
       {
         test: /\.less$/,
-        include: path.resolve(__dirname + '/app'),
-        loader: extractLESS.extract(['css', 'less'])
+        include: [path.resolve(__dirname + '/app')],
+        loader: 'raw!less'
       },
       {
         test: /\.(html|css)$/,
@@ -89,7 +90,7 @@ module.exports = {
   },
   plugins: plugins,
   resolve: {
-    extensions: ['', '.ts', '.js'],
+    extensions: ['', '.ts', '.js', '.less'],
     moduleDirectories: ['node_modules'],
     root: path.resolve(__dirname)
   }

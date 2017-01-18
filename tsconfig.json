@@ -11,7 +11,7 @@
     "noImplicitAny": true,
     "sourceMap": true,
     "suppressImplicitAnyIndexErrors": true,
-    "target": "es5"
+    "target": "es6"
   },
   "include": ["app/**/*"],
   "exclude": ["node_modules"]
