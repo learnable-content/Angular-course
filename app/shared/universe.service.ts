@@ -3,9 +3,10 @@ import { Http, Response } from "@angular/http";
 
 @Injectable()
 export class UniverseService {
-    // location of London, UK
-    private latitude = 51.50735;
-    private longitude = -0.12776;
+    private LOCATION = { // Toronto, Canada
+        latitude: 43.6656,
+        longitude: -79.383,
+    };
 
     private apiUrl = "https://discover.universe.com/api/v2/discover_events";
 
