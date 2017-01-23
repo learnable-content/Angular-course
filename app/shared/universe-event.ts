@@ -9,6 +9,7 @@ export interface UniverseEvent {
     formatted_price: string;
     host_image_url: string;
     host_name: string;
+    id: string;
     image_url: string;
     location: string;
     price: number;

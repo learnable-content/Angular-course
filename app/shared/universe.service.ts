@@ -61,6 +61,7 @@ export class UniverseService {
     getEventsThisWeek(): Observable<UniverseEvent> {
         const { today, endOfWeek } = this.getDates();
         return this.eventStream
+            .distinct(e => e.id)
             .filter(event => {
                 const time = this.eventUnixTime(event);
                 return today <= time && time <= endOfWeek;
@@ -70,6 +71,7 @@ export class UniverseService {
     getEventsLaterThisMonth(): Observable<UniverseEvent> {
         const { endOfWeek } = this.getDates();
         return this.eventStream
+            .distinct(e => e.id)
             .filter(event => {
                 const time = this.eventUnixTime(event);
                 return endOfWeek <= time;
