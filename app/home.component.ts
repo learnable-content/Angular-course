@@ -13,13 +13,13 @@ export class HomeComponent implements OnInit {
     }
 
     ngOnInit() {
-        this.loadEvents();
-    }
-
-    loadEvents() {
-        this.universe.getTodayEvents().then(events => this.events = events);
-        this.universe.getFutureEvents().then(events => {
-            this.moreEvents = events;
+        this.events = [];
+        this.moreEvents = [];
+        this.universe.getEventsThisWeek().subscribe(event => {
+            this.events.push(event);
+        });
+        this.universe.getEventsLaterThisMonth().subscribe(event => {
+            this.moreEvents.push(event);
         });
     }
 
