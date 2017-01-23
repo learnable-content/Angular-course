@@ -26,22 +26,13 @@ let plugins = [
   extractLESS
 ];
 
-if (isProduction) { /*
+if (isProduction) {
+  // anything needed for production
+} else {
   plugins = plugins.concat([
-    new webpack.optimize.UglifyJsPlugin({
-      compress: {
-        warnings: false
-      },
-      mangle: false,
-      comments: false,
-      sourceMap: false
-    })
-  ]);
-*/ } else {
-  plugins = plugins.concat([
-    new DebugWebpackPlugin({
-      debug: true
-    })
+    //new DebugWebpackPlugin({
+    //  debug: true
+    //})
   ]);
 }
 
