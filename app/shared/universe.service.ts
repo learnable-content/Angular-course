@@ -8,7 +8,7 @@ export class UniverseService {
         longitude: -79.383,
     };
 
-    private apiUrl = "https://discover.universe.com/api/v2/discover_events";
+    private apiBaseUrl = "https://discover.universe.com/api/v2/discover_events";
 
     constructor (private http: Http) {
     }
