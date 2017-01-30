@@ -51,7 +51,7 @@ export class UniverseService {
             today,
             endOfWeek: today + 60 * 60 * 24 * 7,
             endOfMonth: today + 60 * 60 * 24 * 30,
-        }
+        };
     }
 
     private eventUnixTime(event: UniverseEvent) {
