@@ -38,6 +38,10 @@
   version "2.4.4"
   resolved "https://registry.yarnpkg.com/@angular/upgrade/-/upgrade-2.4.4.tgz#707614dfbed4cb6d021e53ecd62a2f449442d590"
 
+"@swimlane/ngx-datatable@^6.0.1":
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/@swimlane/ngx-datatable/-/ngx-datatable-6.0.1.tgz#a79f349f361db518372e1c4506f920aac834f558"
+
 "@types/angular@^1.6.1":
   version "1.6.2"
   resolved "https://registry.yarnpkg.com/@types/angular/-/angular-1.6.2.tgz#a5c323ea5d4426ad18984cc8167fa091f7c8201b"
@@ -98,10 +102,6 @@ alphanum-sort@^1.0.1, alphanum-sort@^1.0.2:
 amdefine@>=0.0.4:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/amdefine/-/amdefine-1.0.1.tgz#4a5282ac164729e93619bcfd3ad151f817ce91f5"
-
-angular2-data-table@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/angular2-data-table/-/angular2-data-table-3.0.0.tgz#cd0b31d15edb5537ec7f984c590dbf360f40ba93"
 
 angular2-template-loader@^0.6.0:
   version "0.6.0"

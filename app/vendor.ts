@@ -7,4 +7,3 @@ import "@angular/router";
 
 import "rxjs";
 
-import "angular2-data-table";
