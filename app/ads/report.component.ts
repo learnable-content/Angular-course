@@ -1,5 +1,6 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, ViewChild, AfterViewInit } from "@angular/core";
 import { AnalyticsService, ReportDataRow } from "../shared/analytics.service";
+import { DatatableComponent } from "@swimlane/ngx-datatable";
 
 @Component({
     selector: "ads-report",
@@ -7,7 +8,8 @@ import { AnalyticsService, ReportDataRow } from "../shared/analytics.service";
     providers: [AnalyticsService],
     styles: [require("./report.style.less")]
 })
-export class AdReportComponent implements OnInit {
+export class AdReportComponent implements OnInit, AfterViewInit {
+    @ViewChild(DatatableComponent) table: DatatableComponent;
     constructor(private analytics: AnalyticsService) {
     }
 
@@ -15,6 +17,10 @@ export class AdReportComponent implements OnInit {
         for (let i = 0; i < 5; i += 1) {
             setTimeout(() => this.loadMoreRows(), 100 * i);
         }
+    }
+
+    ngAfterViewInit() {
+        this.table.bodyHeight = 400;
     }
 
     loadMoreRows() {
