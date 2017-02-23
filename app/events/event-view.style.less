@@ -4,15 +4,22 @@
 
 .event-title {
     color: #00aa4f;
-    font-size: 1.1em;
     font-weight: bold;
+    font-family: serif;
+    font-size: 1.1em;
 }
 
 .event-more-info {
     color: #333333;
+    padding: 1em;
+    animation: fadein 2s;
 }
 
 .event-description {
-    margin-top: 1em;
     font-size: 0.9em;
+}
+
+@keyframes fadein {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }

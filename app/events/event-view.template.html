@@ -2,17 +2,17 @@
    (click)="onClick()"
    target="_blank">
   <header class="event-info">
-    <img class="event-image" width="150" height="150" src="{{imageUrl()}}" />
-    <div class="event-title">{{event.title}}</div>
+    <img class="event-image" src="{{imageUrl}}" />
   </header>
   <section class="event-more-info">
-    <div class="event-location">{{event.location}}</div>
-    <div class="event-description">
-      {{event.formatted_duration}}
-      <template ngIf="!isFree()">
-        <br/>
-        {{event.formatted_price}}
+    <span class="event-title">{{event.title}}</span>
+    at
+    <span class="event-location">{{event.location}}</span>
+    <span div class="event-description">
+      ({{event.formatted_duration}}).
+      <template [ngIf]="!isFree">
+        The price is {{event.formatted_price}}.
       </template>
-    </div>
+    </span>
   </section>
 </a>
