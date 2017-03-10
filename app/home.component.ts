@@ -6,8 +6,8 @@ import { AnalyticsService } from "./shared/analytics.service";
 import { Observable } from "rxjs";
 
 @Component({
-    template: require("./home.template.html"),
-    styles: [require("./home.style.less")],
+    templateUrl: "./home.template.html",
+    styleUrls: ["./home.style.less"],
     providers: [UniverseService, AnalyticsService]
 })
 export class HomeComponent implements OnInit {
@@ -15,6 +15,7 @@ export class HomeComponent implements OnInit {
     }
 
     ngOnInit() {
+        this.today = new Date();
         this.events = [];
         this.moreEvents = [];
         this.universe.getEventsThisWeek().subscribe(event => {
@@ -44,13 +45,14 @@ export class HomeComponent implements OnInit {
         console.debug(category);
     }
 
-    private categories: string[] = [
+    today: Date;
+    categories: string[] = [
         "events",
         "concerts",
         "food tours"
     ];
-    private selectedCategory: string = this.categories[0];
-    private eventPassesFilter(event: UniverseEvent): boolean {
+    selectedCategory: string = this.categories[0];
+    eventPassesFilter(event: UniverseEvent): boolean {
         return event.category === this.selectedCategory;
     }
     getFilteredEvents(events: UniverseEvent[]): UniverseEvent[] {
@@ -60,9 +62,9 @@ export class HomeComponent implements OnInit {
         return events.filter(this.eventPassesFilter.bind(this));
     }
 
-    private events: UniverseEvent[];
-    private moreEvents: UniverseEvent[];
-    private ads: Ad[] = [
+    events: UniverseEvent[];
+    moreEvents: UniverseEvent[];
+    ads: Ad[] = [
         {
             title: `Sponsored Event`,
             image_url: "/assets/images/placeholder-150x150.png",
@@ -75,7 +77,7 @@ export class HomeComponent implements OnInit {
         }
     ];
 
-    private loadMoreButtonAlreadyClicked: boolean = false;
+    loadMoreButtonAlreadyClicked: boolean = false;
     loadMoreButtonClick(): void {
         this.loadMoreButtonAlreadyClicked = true;
         this.universe.getMoreEvents(2, 5);
