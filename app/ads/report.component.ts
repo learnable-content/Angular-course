@@ -4,9 +4,9 @@ import { DatatableComponent } from "@swimlane/ngx-datatable";
 
 @Component({
     selector: "ads-report",
-    template: require("./report.template.html"),
+    templateUrl: "./report.template.html",
     providers: [AnalyticsService],
-    styles: [require("./report.style.less")]
+    styleUrls: ["./report.style.less"]
 })
 export class AdReportComponent implements OnInit, AfterViewInit {
     @ViewChild(DatatableComponent) table: DatatableComponent;

@@ -8,10 +8,10 @@
   <h3 class="date">{{today}}</h3>
   <section class="events-container">
     <sponsored-event [ad]="getAdAtIndex(0)"></sponsored-event>
-    <template ngFor let-event [ngForOf]="getFilteredEvents(events)" let-i="index">
+    <ng-template ngFor let-event [ngForOf]="getFilteredEvents(events)" let-i="index">
       <sponsored-event *ngIf="hasAdAtIndex(i)" [ad]="getAdAtIndex(i)"></sponsored-event>
       <event-view [event]="event" (afterClick)="eventClicked($event)"></event-view>
-    </template>
+    </ng-template>
   </section>
   <section class="load-more" *ngIf="!loadMoreButtonAlreadyClicked">
     <button class="load-more-button" (click)="loadMoreButtonClick()" >
@@ -23,8 +23,8 @@
 <section class="more-events">
   <h3>More Events</h3>
   <section class="events-container">
-    <template ngFor let-event [ngForOf]="getFilteredEvents(moreEvents)">
+    <ng-template ngFor let-event [ngForOf]="getFilteredEvents(moreEvents)">
       <event-view [event]="event"></event-view>
-    </template>
+    </ng-template>
   </section>
 </section>

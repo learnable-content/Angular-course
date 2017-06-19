@@ -4,8 +4,8 @@ import { UniverseEvent } from "../shared/universe-event";
 
 @Component({
     selector: "event-view",
-    template: require("./event-view.template.html"),
-    styles: [require("./event-view.style.less")],
+    templateUrl: "./event-view.template.html",
+    styleUrls: ["./event-view.style.less"],
     providers: [AnalyticsService],
     host: {
         "class": "event-view"
@@ -32,4 +32,3 @@ export class EventViewComponent {
         return this.event.image_url.replace("160x160", "280x280");
     }
 }
-
