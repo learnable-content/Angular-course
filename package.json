@@ -1,0 +1,20 @@
+{
+  "name": "sitepoint-angular2-intermediate",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "lint": "tslint -c tslint.json --project tsconfig.json"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "tslint": "^5.4.3"
+  },
+  "devDependencies": {
+    "@types/angular": "^1.6.18",
+    "@types/node": "^7.0.28",
+    "tslib": "^1.7.1",
+    "typescript": "^2.1.5"
+  }
+}
