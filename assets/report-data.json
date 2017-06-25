@@ -1,0 +1,610 @@
+{
+  "rows": [
+    {
+      "date": "1 January 2017",
+      "adClicks": 30,
+      "eventClicks": 100,
+      "revenue": "$100.00"
+    },
+    {
+      "date": "2 January 2017",
+      "adClicks": 32,
+      "eventClicks": 102,
+      "revenue": "$100.02"
+    },
+    {
+      "date": "3 January 2017",
+      "adClicks": 33,
+      "eventClicks": 103,
+      "revenue": "$100.03"
+    },
+    {
+      "date": "4 January 2017",
+      "adClicks": 34,
+      "eventClicks": 104,
+      "revenue": "$100.04"
+    },
+    {
+      "date": "5 January 2017",
+      "adClicks": 35,
+      "eventClicks": 105,
+      "revenue": "$100.05"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    },
+    {
+      "date": "6 January 2017",
+      "adClicks": 36,
+      "eventClicks": 106,
+      "revenue": "$100.06"
+    }
+  ]
+}
