@@ -1,0 +1,49 @@
+<h3>Order Form</h3>
+<form [formGroup]="orderForm" novalidate>
+  <p>
+    <label>First Name: <input formControlName="firstName"></label>
+  </p>
+  <p>
+    <label>Last Name: <input formControlName="lastName"></label>
+  </p>
+  <p>
+    <label>
+      Is the shipping address the same as the billing address?
+      <input type="checkbox"
+             formControlName="shippingSameAsBillingAddress"
+             (change)="shippingSameAsBillingAddressChanged($event.target.checked)"
+             >
+    </label>
+  </p>
+  <h4>Billing Address</h4>
+  <div formGroupName="billingAddress">
+    <p>
+      <label>Street Address:<br/>
+        <input formControlName="streetAddress"></label>
+    </p>
+    <p>
+      <label>City:<br/>
+        <input formControlName="city"></label>
+    </p>
+  </div>
+  <h4>Shipping Address</h4>
+  <div *ngIf="shippingSameAsBilling; else shippingAddressForm">
+    <em>Shipping address is the same as the billing address.</em>
+  </div>
+  <ng-template #shippingAddressForm>
+    <div formGroupName="shippingAddress">
+      <p>
+        <label>Street Address:<br/>
+          <input formControlName="streetAddress"></label>
+      </p>
+      <p>
+        <label>City:<br/>
+          <input formControlName="city"></label>
+      </p>
+    </div>
+  </ng-template>
+</form>
+<h4>Value of the Order Form</h4>
+<p>
+  {{orderFormAsJSON}}
+</p>
