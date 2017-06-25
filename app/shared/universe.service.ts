@@ -5,7 +5,7 @@ import { UniverseEvent } from "./universe-event";
 
 @Injectable()
 export class UniverseService {
-    private apiBaseUrl;
+    private apiBaseUrl: string;
 
     constructor (private http: Http) {
     }
