@@ -3,6 +3,7 @@ import { BrowserModule } from "@angular/platform-browser";
 import { HttpModule } from "@angular/http";
 import { RouterModule, Routes } from "@angular/router";
 import { FormsModule } from "@angular/forms";
+import { NgxDatatableModule } from "@swimlane/ngx-datatable";
 import { ExampleModule } from "./examples/example.module";
 
 import { AppComponent } from "./app.component";
@@ -25,7 +26,8 @@ const appRoutes: Routes = [
         HttpModule,
         RouterModule.forRoot(appRoutes),
         FormsModule,
-        ExampleModule
+        ExampleModule,
+        NgxDatatableModule
     ],
     declarations: [
         AppComponent,
