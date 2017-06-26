@@ -11,7 +11,8 @@ import { Observable } from "rxjs";
     providers: [UniverseService, AnalyticsService]
 })
 export class HomeComponent implements OnInit {
-    constructor(private universe: UniverseService, private analytics: AnalyticsService) {
+    constructor(private universe: UniverseService,
+                private analytics: AnalyticsService) {
     }
 
     ngOnInit() {
@@ -40,26 +41,6 @@ export class HomeComponent implements OnInit {
         return i % 4 === 0;
     }
 
-    setCategory(category: string): void {
-        console.debug(category);
-    }
-
-    private categories: string[] = [
-        "events",
-        "concerts",
-        "food tours"
-    ];
-    private selectedCategory: string = this.categories[0];
-    private eventPassesFilter(event: UniverseEvent): boolean {
-        return event.category === this.selectedCategory;
-    }
-    getFilteredEvents(events: UniverseEvent[]): UniverseEvent[] {
-        if (this.selectedCategory === "events") {
-            return events;
-        }
-        return events.filter(this.eventPassesFilter.bind(this));
-    }
-
     private events: UniverseEvent[];
     private moreEvents: UniverseEvent[];
     private ads: Ad[] = [
@@ -74,14 +55,6 @@ export class HomeComponent implements OnInit {
             url: "http://localhost:3000/events"
         }
     ];
-
-    private loadMoreButtonAlreadyClicked: boolean = false;
-    loadMoreButtonClick(): void {
-        this.loadMoreButtonAlreadyClicked = true;
-        this.universe.getMoreEvents(2, 5);
-        this.universe.getMoreEvents(3, 5);
-        this.analytics.event("click", "event", "load-more");
-    }
 
     private eventClicked(event: UniverseEvent): void {
         console.log("Event clicked on the homepage: " + event.id);
