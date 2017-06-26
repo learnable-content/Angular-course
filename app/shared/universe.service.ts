@@ -15,11 +15,8 @@ export class UniverseService {
 
     constructor (private http: Http) {
         this.eventStream = new Subject();
-        const pageSize = 10;
-        const timeLimit = Observable.timer(3000);
-        Observable.interval(300)
-            .takeUntil(timeLimit)
-            .subscribe(page => this.getMoreEvents(page + 1, pageSize));
+        const pageSize = 5;
+        this.getMoreEvents(1, pageSize);
     }
 
     getMoreEvents(page: number, pageSize: number): void {
@@ -51,7 +48,7 @@ export class UniverseService {
             today,
             endOfWeek: today + 60 * 60 * 24 * 7,
             endOfMonth: today + 60 * 60 * 24 * 30,
-        }
+        };
     }
 
     private eventUnixTime(event: UniverseEvent) {
@@ -61,6 +58,7 @@ export class UniverseService {
     getEventsThisWeek(): Observable<UniverseEvent> {
         const { today, endOfWeek } = this.getDates();
         return this.eventStream
+            .distinct(e => e.id)
             .filter(event => {
                 const time = this.eventUnixTime(event);
                 return today <= time && time <= endOfWeek;
@@ -70,9 +68,11 @@ export class UniverseService {
     getEventsLaterThisMonth(): Observable<UniverseEvent> {
         const { endOfWeek } = this.getDates();
         return this.eventStream
+            .distinct(e => e.id)
             .filter(event => {
                 const time = this.eventUnixTime(event);
                 return endOfWeek <= time;
-            });
+            })
+            .take(8);
     }
 };

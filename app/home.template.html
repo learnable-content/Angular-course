@@ -3,7 +3,7 @@
   <h3 class="date">{{today}}</h3>
   <section class="events-container">
     <sponsored-event [ad]="getAdAtIndex(0)"></sponsored-event>
-    <ng-template ngFor let-event [ngForOf]="getFilteredEvents(events)" let-i="index">
+    <ng-template ngFor let-event [ngForOf]="events" let-i="index">
       <sponsored-event *ngIf="hasAdAtIndex(i)" [ad]="getAdAtIndex(i)"></sponsored-event>
       <event-view [event]="event" (afterClick)="eventClicked($event)"></event-view>
     </ng-template>
@@ -13,7 +13,7 @@
 <section class="more-events">
   <h3>More Events</h3>
   <section class="events-container">
-    <ng-template ngFor let-event [ngForOf]="getFilteredEvents(moreEvents)">
+    <ng-template ngFor let-event [ngForOf]="moreEvents">
       <event-view [event]="event"></event-view>
     </ng-template>
   </section>
