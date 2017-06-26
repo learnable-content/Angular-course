@@ -12,4 +12,9 @@ export class AdViewComponent {
     }
 
     @Input() ad: Ad;
+
+    onClick(): boolean {
+        this.analytics.event("click", "ad", this.ad.url);
+        return true;
+    }
 }

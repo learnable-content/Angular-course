@@ -1,14 +1,10 @@
 import { Injectable } from "@angular/core";
-import { Http, Response } from "@angular/http";
 
 @Injectable()
 export class AnalyticsService {
-    constructor (private http: Http) {
+    constructor () {
     }
 
-    event() {
-    }
-
-    report() {
+    event(eventType: any, eventTarget: any, id: string) {
     }
 };
