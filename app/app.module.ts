@@ -5,9 +5,13 @@ import { RouterModule, Routes } from "@angular/router";
 import { FormsModule } from "@angular/forms";
 
 import { AppComponent } from "./app.component";
+import { HomeComponent } from "./home.component";
+import { AdReportComponent } from "./ads/report.component";
 
 const appRoutes: Routes = [
-    { path: "", redirectTo: "/events", pathMatch: "full" }
+    { path: "", redirectTo: "/events", pathMatch: "full" },
+    { path: "events", component: HomeComponent },
+    { path: "report", component: AdReportComponent }
 ];
 
 @NgModule({
@@ -18,7 +22,9 @@ const appRoutes: Routes = [
         FormsModule
     ],
     declarations: [
-        AppComponent
+        AppComponent,
+        HomeComponent,
+        AdReportComponent
     ],
     bootstrap: [ AppComponent ]
 })
