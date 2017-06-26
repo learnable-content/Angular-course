@@ -2,7 +2,7 @@
    (click)="onClick()"
    target="_blank">
   <header class="event-info">
-    <img class="event-image" src="{{imageUrl()}}" />
+    <img class="event-image" src="{{imageUrl}}" />
   </header>
   <section class="event-more-info">
     <span class="event-title">{{event.title}}</span>
@@ -10,7 +10,7 @@
     <span class="event-location">{{event.location}}</span>
     <span div class="event-description">
       ({{event.formatted_duration}}).
-      <ng-template [ngIf]="!isFree()">
+      <ng-template [ngIf]="!isFree">
         The price is {{event.formatted_price}}.
       </ng-template>
     </span>
