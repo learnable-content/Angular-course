@@ -4,12 +4,23 @@ import typescript from 'rollup-plugin-typescript2';
 import angular from 'rollup-plugin-angular';
 import uglify from 'rollup-plugin-uglify';
 
+const child_process = require('child_process');
+
 export default {
     entry: 'app/main.ts',
     dest: 'dist/build.js',
     format: 'iife',
     plugins: [
-        angular(),
+        angular({
+            preprocessors: {
+                template: template => template,
+                style: lesscss => {
+                    return child_process.execSync('yarn run -s lessc -', {
+                        input: lesscss
+                    }).toString();
+                }
+            }
+        }),
         typescript(),
         nodeResolve({
             jsnext: true,
