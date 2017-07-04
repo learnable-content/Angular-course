@@ -16,10 +16,10 @@ export class HomeComponent implements OnInit {
 
     ngOnInit() {
         this.events = [];
-        this.moreEvents = [];
         this.universe.getEventsThisWeek().subscribe(event => {
             this.events.push(event);
         });
+        this.moreEvents = [];
         this.universe.getEventsLaterThisMonth().subscribe(event => {
             this.moreEvents.push(event);
         });
@@ -40,28 +40,18 @@ export class HomeComponent implements OnInit {
         return i % 4 === 0;
     }
 
-    setCategory(category: string): void {
-        console.debug(category);
-    }
-
     private categories: string[] = [
         "events",
         "concerts",
-        "food tours"
+        "film",
+        "crafts",
+        "food-drink",
+        "business"
     ];
     private selectedCategory: string = this.categories[0];
-    private eventPassesFilter(event: UniverseEvent): boolean {
-        return event.category === this.selectedCategory;
-    }
-    getFilteredEvents(events: UniverseEvent[]): UniverseEvent[] {
-        if (this.selectedCategory === "events") {
-            return events;
-        }
-        return events.filter(this.eventPassesFilter.bind(this));
-    }
 
-    private events: UniverseEvent[];
-    private moreEvents: UniverseEvent[];
+    private events: Array<UniverseEvent>;
+    private moreEvents: Array<UniverseEvent>;
     private ads: Ad[] = [
         {
             title: `Sponsored Event`,
