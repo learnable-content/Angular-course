@@ -1,0 +1,30 @@
+<h2>Check out cool
+  <select class="category-select" [ngModel]="selectedCategory" (ngModelChange)="setCategory($event)">
+    <option *ngFor="let category of categories" [value]="category">{{category}}</option>
+  </select>
+  in Toronto, Canada!
+</h2>
+<section class="today">
+  <h3 class="date">{{today}}</h3>
+  <section class="events-container">
+    <sponsored-event [ad]="getAdAtIndex(0)"></sponsored-event>
+    <ng-template ngFor let-event [ngForOf]="getFilteredEvents(events)" let-i="index">
+      <sponsored-event *ngIf="hasAdAtIndex(i)" [ad]="getAdAtIndex(i)"></sponsored-event>
+      <event-view [event]="event" (afterClick)="eventClicked($event)"></event-view>
+    </ng-template>
+  </section>
+  <section class="load-more" *ngIf="!loadMoreButtonAlreadyClicked">
+    <button class="load-more-button" (click)="loadMoreButtonClick()" >
+      Load More Events
+    </button>
+  </section>
+</section>
+
+<section class="more-events">
+  <h3>More Events</h3>
+  <section class="events-container">
+    <ng-template ngFor let-event [ngForOf]="getFilteredEvents(moreEvents)">
+      <event-view [event]="event"></event-view>
+    </ng-template>
+  </section>
+</section>
