@@ -7,7 +7,6 @@ import { Observable } from "rxjs";
 
 @Component({
     templateUrl: "./home.template.html",
-    styleUrls: ["./home.style.less"],
     providers: [UniverseService, AnalyticsService]
 })
 export class HomeComponent implements OnInit {
@@ -44,13 +43,13 @@ export class HomeComponent implements OnInit {
         console.debug(category);
     }
 
-    private categories: string[] = [
+     categories: string[] = [
         "events",
         "concerts",
         "food tours"
     ];
-    private selectedCategory: string = this.categories[0];
-    private eventPassesFilter(event: UniverseEvent): boolean {
+    selectedCategory: string = this.categories[0];
+    eventPassesFilter(event: UniverseEvent): boolean {
         return event.category === this.selectedCategory;
     }
     getFilteredEvents(events: UniverseEvent[]): UniverseEvent[] {
@@ -60,9 +59,9 @@ export class HomeComponent implements OnInit {
         return events.filter(this.eventPassesFilter.bind(this));
     }
 
-    private events: UniverseEvent[];
-    private moreEvents: UniverseEvent[];
-    private ads: Ad[] = [
+    events: UniverseEvent[];
+    moreEvents: UniverseEvent[];
+    ads: Ad[] = [
         {
             title: `Sponsored Event`,
             image_url: "/assets/images/placeholder-150x150.png",
@@ -75,7 +74,7 @@ export class HomeComponent implements OnInit {
         }
     ];
 
-    private loadMoreButtonAlreadyClicked: boolean = false;
+    loadMoreButtonAlreadyClicked: boolean = false;
     loadMoreButtonClick(): void {
         this.loadMoreButtonAlreadyClicked = true;
         this.universe.getMoreEvents(2, 5);
@@ -83,7 +82,9 @@ export class HomeComponent implements OnInit {
         this.analytics.event("click", "event", "load-more");
     }
 
-    private eventClicked(event: UniverseEvent): void {
+    eventClicked(event: UniverseEvent): void {
         console.log("Event clicked on the homepage: " + event.id);
     }
+
+    today: string = "Today's Date";
 };

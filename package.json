@@ -6,8 +6,10 @@
   "scripts": {
     "lint": "tslint -c tslint.json --project tsconfig.json",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "build:styles": "lessc app/styles.less dist/styles.css",
     "build:static": "rm -r ./dist/; mkdir dist; cp -r assets/ dist/; cp index.html dist/index.html; cp node_modules/core-js/client/shim.min.js dist/core-js.min.js; cp node_modules/zone.js/dist/zone.min.js dist/zone.min.js",
-    "build": "yarn run build:static; NODE_ENV=production rollup -c rollup-vendor.config.js; NODE_ENV=production rollup -c rollup.config.js",
+    "build": "yarn run build:static; yarn run build:styles; ngc -p tsconfig-aot.json; NODE_ENV=production rollup -c rollup-vendor.config.js; NODE_ENV=production rollup -c rollup.config.js",
+    "build:jit": "yarn run build:static; yarn run build:styles; NODE_ENV=production rollup -c rollup-vendor.config.js; NODE_ENV=production rollup -c rollup-jit.config.js",
     "compile": "yarn run build:static; rollup -c rollup-vendor.config.js; rollup --watch -c rollup.config.js",
     "start": "lite-server"
   },

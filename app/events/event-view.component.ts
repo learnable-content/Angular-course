@@ -5,7 +5,6 @@ import { UniverseEvent } from "../shared/universe-event";
 @Component({
     selector: "event-view",
     templateUrl: "./event-view.template.html",
-    styleUrls: ["./event-view.style.less"],
     providers: [AnalyticsService],
     host: {
         "class": "event-view"

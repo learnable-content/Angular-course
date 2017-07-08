@@ -7,7 +7,7 @@ import uglify from 'rollup-plugin-uglify';
 const child_process = require('child_process');
 
 export default {
-    entry: 'app/main.ts',
+    entry: 'app/main-jit.ts',
     dest: 'dist/build.js',
     format: 'iife',
     plugins: [
@@ -37,7 +37,8 @@ export default {
                     'DatatableComponent'
                 ]
             }
-        })
+        }),
+        uglify()
     ],
     onwarn: function(warning) {
         if (warning.code === 'THIS_IS_UNDEFINED') {
