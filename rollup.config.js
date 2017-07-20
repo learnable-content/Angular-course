@@ -37,8 +37,7 @@ export default {
                     'DatatableComponent'
                 ]
             }
-        }),
-        uglify()
+        })
     ],
     onwarn: function(warning) {
         if (warning.code === 'THIS_IS_UNDEFINED') {
