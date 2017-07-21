@@ -6,25 +6,24 @@
  /* tslint:disable */
 
 
-import * as i0 from './report.style.less.shim.ngstyle';
-import * as i1 from '@angular/core';
-import * as i2 from '../../node_modules/@swimlane/ngx-datatable/release/components/datatable.component.ngfactory';
-import * as i3 from '@swimlane/ngx-datatable/release/components/datatable.component';
-import * as i4 from '@swimlane/ngx-datatable/release/services/scrollbar-helper.service';
-import * as i5 from '../../../app/ads/report.component';
-import * as i6 from '../../../app/shared/analytics.service';
-import * as i7 from '@angular/http';
-const styles_AdReportComponent:any[] = [i0.styles];
-export const RenderType_AdReportComponent:i1.RendererType2 = i1.ɵcrt({encapsulation:0,
+import * as i0 from '@angular/core';
+import * as i1 from '../../node_modules/@swimlane/ngx-datatable/release/components/datatable.component.ngfactory';
+import * as i2 from '@swimlane/ngx-datatable/release/components/datatable.component';
+import * as i3 from '@swimlane/ngx-datatable/release/services/scrollbar-helper.service';
+import * as i4 from '../../../app/ads/report.component';
+import * as i5 from '../../../app/shared/analytics.service';
+import * as i6 from '@angular/http';
+const styles_AdReportComponent:any[] = ([] as any[]);
+export const RenderType_AdReportComponent:i0.RendererType2 = i0.ɵcrt({encapsulation:2,
     styles:styles_AdReportComponent,data:{}});
-export function View_AdReportComponent_0(_l:any):i1.ɵViewDefinition {
-  return i1.ɵvid(0,[i1.ɵqud(402653184,1,{table:0}),(_l()(),i1.ɵeld(0,(null as any),
+export function View_AdReportComponent_0(_l:any):i0.ɵViewDefinition {
+  return i0.ɵvid(0,[i0.ɵqud(402653184,1,{table:0}),(_l()(),i0.ɵeld(0,(null as any),
       (null as any),1,'h1',([] as any[]),(null as any),(null as any),(null as any),
-      (null as any),(null as any))),(_l()(),i1.ɵted((null as any),['Analytics Report'])),
-      (_l()(),i1.ɵted((null as any),['\n'])),(_l()(),i1.ɵeld(0,(null as any),(null as any),
+      (null as any),(null as any))),(_l()(),i0.ɵted((null as any),['Analytics Report'])),
+      (_l()(),i0.ɵted((null as any),['\n'])),(_l()(),i0.ɵeld(0,(null as any),(null as any),
           1,'p',([] as any[]),(null as any),(null as any),(null as any),(null as any),
-          (null as any))),(_l()(),i1.ɵted((null as any),['Table of analytics results:'])),
-      (_l()(),i1.ɵted((null as any),['\n'])),(_l()(),i1.ɵeld(0,(null as any),(null as any),
+          (null as any))),(_l()(),i0.ɵted((null as any),['Table of analytics results:'])),
+      (_l()(),i0.ɵted((null as any),['\n'])),(_l()(),i0.ɵeld(0,(null as any),(null as any),
           4,'ngx-datatable',[['class','material ngx-datatable']],[[2,'fixed-header',
               (null as any)],[2,'fixed-row',(null as any)],[2,'scroll-vertical',(null as any)],
               [2,'scroll-horz',(null as any)],[2,'selectable',(null as any)],[2,'checkbox-selection',
@@ -33,19 +32,19 @@ export function View_AdReportComponent_0(_l:any):i1.ɵViewDefinition {
                   (null as any)]],[['window','resize']],(_v,en,$event) => {
             var ad:boolean = true;
             if (('window:resize' === en)) {
-              const pd_0:any = ((<any>i1.ɵnov(_v,8).onWindowResize()) !== false);
+              const pd_0:any = ((<any>i0.ɵnov(_v,8).onWindowResize()) !== false);
               ad = (pd_0 && ad);
             }
             return ad;
-          },i2.View_DatatableComponent_0,i2.RenderType_DatatableComponent)),i1.ɵdid(4571136,
-          [[1,4],['table',4]],3,i3.DatatableComponent,[i4.ScrollbarHelper,i1.ElementRef,
-              i1.KeyValueDiffers],{rows:[0,'rows'],columns:[1,'columns'],scrollbarV:[2,
+          },i1.View_DatatableComponent_0,i1.RenderType_DatatableComponent)),i0.ɵdid(4571136,
+          [[1,4],['table',4]],3,i2.DatatableComponent,[i3.ScrollbarHelper,i0.ElementRef,
+              i0.KeyValueDiffers],{rows:[0,'rows'],columns:[1,'columns'],scrollbarV:[2,
               'scrollbarV'],rowHeight:[3,'rowHeight'],headerHeight:[4,'headerHeight'],
               footerHeight:[5,'footerHeight'],loadingIndicator:[6,'loadingIndicator']},
-          (null as any)),i1.ɵqud(603979776,2,{columnTemplates:1}),i1.ɵqud(335544320,
-          3,{rowDetail:0}),i1.ɵqud(335544320,4,{footer:0}),(_l()(),i1.ɵted((null as any),
+          (null as any)),i0.ɵqud(603979776,2,{columnTemplates:1}),i0.ɵqud(335544320,
+          3,{rowDetail:0}),i0.ɵqud(335544320,4,{footer:0}),(_l()(),i0.ɵted((null as any),
           ['\n']))],(_ck,_v) => {
-    var _co:i5.AdReportComponent = _v.component;
+    var _co:i4.AdReportComponent = _v.component;
     const currVal_10:any = _co.rows;
     const currVal_11:any = _co.columns;
     const currVal_12:any = true;
@@ -55,29 +54,29 @@ export function View_AdReportComponent_0(_l:any):i1.ɵViewDefinition {
     const currVal_16:any = _co.loading;
     _ck(_v,8,0,currVal_10,currVal_11,currVal_12,currVal_13,currVal_14,currVal_15,currVal_16);
   },(_ck,_v) => {
-    const currVal_0:any = i1.ɵnov(_v,8).isFixedHeader;
-    const currVal_1:any = i1.ɵnov(_v,8).isFixedRow;
-    const currVal_2:any = i1.ɵnov(_v,8).isVertScroll;
-    const currVal_3:any = i1.ɵnov(_v,8).isHorScroll;
-    const currVal_4:any = i1.ɵnov(_v,8).isSelectable;
-    const currVal_5:any = i1.ɵnov(_v,8).isCheckboxSelection;
-    const currVal_6:any = i1.ɵnov(_v,8).isCellSelection;
-    const currVal_7:any = i1.ɵnov(_v,8).isSingleSelection;
-    const currVal_8:any = i1.ɵnov(_v,8).isMultiSelection;
-    const currVal_9:any = i1.ɵnov(_v,8).isMultiClickSelection;
+    const currVal_0:any = i0.ɵnov(_v,8).isFixedHeader;
+    const currVal_1:any = i0.ɵnov(_v,8).isFixedRow;
+    const currVal_2:any = i0.ɵnov(_v,8).isVertScroll;
+    const currVal_3:any = i0.ɵnov(_v,8).isHorScroll;
+    const currVal_4:any = i0.ɵnov(_v,8).isSelectable;
+    const currVal_5:any = i0.ɵnov(_v,8).isCheckboxSelection;
+    const currVal_6:any = i0.ɵnov(_v,8).isCellSelection;
+    const currVal_7:any = i0.ɵnov(_v,8).isSingleSelection;
+    const currVal_8:any = i0.ɵnov(_v,8).isMultiSelection;
+    const currVal_9:any = i0.ɵnov(_v,8).isMultiClickSelection;
     _ck(_v,7,0,currVal_0,currVal_1,currVal_2,currVal_3,currVal_4,currVal_5,currVal_6,
         currVal_7,currVal_8,currVal_9);
   });
 }
-export function View_AdReportComponent_Host_0(_l:any):i1.ɵViewDefinition {
-  return i1.ɵvid(0,[(_l()(),i1.ɵeld(0,(null as any),(null as any),2,'ads-report',([] as any[]),
+export function View_AdReportComponent_Host_0(_l:any):i0.ɵViewDefinition {
+  return i0.ɵvid(0,[(_l()(),i0.ɵeld(0,(null as any),(null as any),2,'ads-report',([] as any[]),
       (null as any),(null as any),(null as any),View_AdReportComponent_0,RenderType_AdReportComponent)),
-      i1.ɵprd(512,(null as any),i6.AnalyticsService,i6.AnalyticsService,[i7.Http]),
-      i1.ɵdid(4308992,(null as any),0,i5.AdReportComponent,[i6.AnalyticsService],(null as any),
+      i0.ɵprd(512,(null as any),i5.AnalyticsService,i5.AnalyticsService,[i6.Http]),
+      i0.ɵdid(4308992,(null as any),0,i4.AdReportComponent,[i5.AnalyticsService],(null as any),
           (null as any))],(_ck,_v) => {
     _ck(_v,2,0);
   },(null as any));
 }
-export const AdReportComponentNgFactory:i1.ComponentFactory<i5.AdReportComponent> = i1.ɵccf('ads-report',
-    i5.AdReportComponent,View_AdReportComponent_Host_0,{},{},([] as any[]));
-//# sourceMappingURL=data:application/json;base64,eyJmaWxlIjoiL2hvbWUvcnVkb2xmby9Db2RlL0FuZ3VsYXItY291cnNlL2FwcC9hZHMvcmVwb3J0LmNvbXBvbmVudC5uZ2ZhY3RvcnkudHMiLCJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJuZzovLy9ob21lL3J1ZG9sZm8vQ29kZS9Bbmd1bGFyLWNvdXJzZS9hcHAvYWRzL3JlcG9ydC5jb21wb25lbnQudHMiLCJuZzovLy9ob21lL3J1ZG9sZm8vQ29kZS9Bbmd1bGFyLWNvdXJzZS9hcHAvYWRzL3JlcG9ydC50ZW1wbGF0ZS5odG1sIiwibmc6Ly8vaG9tZS9ydWRvbGZvL0NvZGUvQW5ndWxhci1jb3Vyc2UvYXBwL2Fkcy9yZXBvcnQuY29tcG9uZW50LnRzLkFkUmVwb3J0Q29tcG9uZW50X0hvc3QuaHRtbCJdLCJzb3VyY2VzQ29udGVudCI6WyIgIiwiPGgxPkFuYWx5dGljcyBSZXBvcnQ8L2gxPlxuPHA+VGFibGUgb2YgYW5hbHl0aWNzIHJlc3VsdHM6PC9wPlxuPG5neC1kYXRhdGFibGUgI3RhYmxlXG4gICBjbGFzcz1cIm1hdGVyaWFsXCJcbiAgIFtyb3dzXT1cInJvd3NcIlxuICAgW2NvbHVtbnNdPVwiY29sdW1uc1wiXG4gICBbbG9hZGluZ0luZGljYXRvcl09XCJsb2FkaW5nXCJcbiAgIFtzY3JvbGxiYXJWXT1cInRydWVcIlxuICAgW3Jvd0hlaWdodF09XCI1MFwiXG4gICBbaGVhZGVySGVpZ2h0XT1cIjUwXCJcbiAgIFtmb290ZXJIZWlnaHRdPVwiNTBcIlxuICAgPjwvbmd4LWRhdGF0YWJsZT5cbiIsIjxhZHMtcmVwb3J0PjwvYWRzLXJlcG9ydD4iXSwibWFwcGluZ3MiOiJBQUFBOzs7Ozs7Ozs7Ozs7Ozs7Ozs7OzttRENBQTtNQUFBO01BQUEsOEJBQUk7TUFBcUIsdUNBQ3pCO1VBQUE7VUFBQSxnQkFBRztNQUErQix1Q0FDbEM7VUFBQTtjQUFBO2NBQUE7a0JBQUE7a0JBQUE7a0JBQUE7WUFBQTtZQUFBO2NBQUE7Y0FBQTtZQUFBO1lBQUE7VUFBQSx5RUFBQTtVQUFBO2dDQUFBO2NBQUE7Y0FBQTtVQUFBO1VBQUEsaURBU29CO1VBQUE7O0lBUGpCO0lBQ0E7SUFFQTtJQUNBO0lBQ0E7SUFDQTtJQUpBO0lBSkgsV0FFRyxXQUNBLFdBRUEsV0FDQSxXQUNBLFdBQ0EsV0FKQSxVQUpIOztJQUFBO0lBQUE7SUFBQTtJQUFBO0lBQUE7SUFBQTtJQUFBO0lBQUE7SUFBQTtJQUFBO0lBQUEsV0FBQTtRQUFBLDZCQUFBOzs7O29CQ0ZBO01BQUE7YUFBQTthQUFBO1VBQUE7SUFBQTs7OzsifQ==
+export const AdReportComponentNgFactory:i0.ComponentFactory<i4.AdReportComponent> = i0.ɵccf('ads-report',
+    i4.AdReportComponent,View_AdReportComponent_Host_0,{},{},([] as any[]));
+//# sourceMappingURL=data:application/json;base64,eyJmaWxlIjoiL2hvbWUvcnVkb2xmby9Db2RlL0FuZ3VsYXItY291cnNlL2FwcC9hZHMvcmVwb3J0LmNvbXBvbmVudC5uZ2ZhY3RvcnkudHMiLCJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJuZzovLy9ob21lL3J1ZG9sZm8vQ29kZS9Bbmd1bGFyLWNvdXJzZS9hcHAvYWRzL3JlcG9ydC5jb21wb25lbnQudHMiLCJuZzovLy9ob21lL3J1ZG9sZm8vQ29kZS9Bbmd1bGFyLWNvdXJzZS9hcHAvYWRzL3JlcG9ydC50ZW1wbGF0ZS5odG1sIiwibmc6Ly8vaG9tZS9ydWRvbGZvL0NvZGUvQW5ndWxhci1jb3Vyc2UvYXBwL2Fkcy9yZXBvcnQuY29tcG9uZW50LnRzLkFkUmVwb3J0Q29tcG9uZW50X0hvc3QuaHRtbCJdLCJzb3VyY2VzQ29udGVudCI6WyIgIiwiPGgxPkFuYWx5dGljcyBSZXBvcnQ8L2gxPlxuPHA+VGFibGUgb2YgYW5hbHl0aWNzIHJlc3VsdHM6PC9wPlxuPG5neC1kYXRhdGFibGUgI3RhYmxlXG4gICBjbGFzcz1cIm1hdGVyaWFsXCJcbiAgIFtyb3dzXT1cInJvd3NcIlxuICAgW2NvbHVtbnNdPVwiY29sdW1uc1wiXG4gICBbbG9hZGluZ0luZGljYXRvcl09XCJsb2FkaW5nXCJcbiAgIFtzY3JvbGxiYXJWXT1cInRydWVcIlxuICAgW3Jvd0hlaWdodF09XCI1MFwiXG4gICBbaGVhZGVySGVpZ2h0XT1cIjUwXCJcbiAgIFtmb290ZXJIZWlnaHRdPVwiNTBcIlxuICAgPjwvbmd4LWRhdGF0YWJsZT5cbiIsIjxhZHMtcmVwb3J0PjwvYWRzLXJlcG9ydD4iXSwibWFwcGluZ3MiOiJBQUFBOzs7Ozs7Ozs7Ozs7Ozs7Ozs7O21EQ0FBO01BQUE7TUFBQSw4QkFBSTtNQUFxQix1Q0FDekI7VUFBQTtVQUFBLGdCQUFHO01BQStCLHVDQUNsQztVQUFBO2NBQUE7Y0FBQTtrQkFBQTtrQkFBQTtrQkFBQTtZQUFBO1lBQUE7Y0FBQTtjQUFBO1lBQUE7WUFBQTtVQUFBLHlFQUFBO1VBQUE7Z0NBQUE7Y0FBQTtjQUFBO1VBQUE7VUFBQSxpREFTb0I7VUFBQTs7SUFQakI7SUFDQTtJQUVBO0lBQ0E7SUFDQTtJQUNBO0lBSkE7SUFKSCxXQUVHLFdBQ0EsV0FFQSxXQUNBLFdBQ0EsV0FDQSxXQUpBLFVBSkg7O0lBQUE7SUFBQTtJQUFBO0lBQUE7SUFBQTtJQUFBO0lBQUE7SUFBQTtJQUFBO0lBQUE7SUFBQSxXQUFBO1FBQUEsNkJBQUE7Ozs7b0JDRkE7TUFBQTthQUFBO2FBQUE7VUFBQTtJQUFBOzs7OyJ9

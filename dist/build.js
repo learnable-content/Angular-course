@@ -2402,7 +2402,7 @@ var share_1 = {
 };
 
 /**
- * @license Angular v4.2.4
+ * @license Angular v4.3.1
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -3194,7 +3194,7 @@ var Version = (function () {
 /**
  * \@stable
  */
-var VERSION = new Version('4.2.4');
+var VERSION = new Version('4.3.1');
 /**
  * @license
  * Copyright Google Inc. All Rights Reserved.
@@ -6141,26 +6141,46 @@ var NgZone = (function () {
      */
     function NgZone(_a) {
         var _b = _a.enableLongStackTrace, enableLongStackTrace = _b === void 0 ? false : _b;
-        this._hasPendingMicrotasks = false;
-        this._hasPendingMacrotasks = false;
-        this._isStable = true;
-        this._nesting = 0;
-        this._onUnstable = new EventEmitter(false);
-        this._onMicrotaskEmpty = new EventEmitter(false);
-        this._onStable = new EventEmitter(false);
-        this._onErrorEvents = new EventEmitter(false);
+        this.hasPendingMicrotasks = false;
+        this.hasPendingMacrotasks = false;
+        /**
+         * Whether there are no outstanding microtasks or macrotasks.
+         */
+        this.isStable = true;
+        /**
+         * Notifies when code enters Angular Zone. This gets fired first on VM Turn.
+         */
+        this.onUnstable = new EventEmitter(false);
+        /**
+         * Notifies when there is no more microtasks enqueue in the current VM Turn.
+         * This is a hint for Angular to do change detection, which may enqueue more microtasks.
+         * For this reason this event can fire multiple times per VM Turn.
+         */
+        this.onMicrotaskEmpty = new EventEmitter(false);
+        /**
+         * Notifies when the last `onMicrotaskEmpty` has run and there are no more microtasks, which
+         * implies we are about to relinquish VM turn.
+         * This event gets called just once.
+         */
+        this.onStable = new EventEmitter(false);
+        /**
+         * Notifies that an error has been delivered.
+         */
+        this.onError = new EventEmitter(false);
         if (typeof Zone == 'undefined') {
             throw new Error('Angular requires Zone.js prolyfill.');
         }
         Zone.assertZonePatched();
-        this.outer = this.inner = Zone.current;
+        var self = this;
+        self._nesting = 0;
+        self._outer = self._inner = Zone.current;
         if (Zone['wtfZoneSpec']) {
-            this.inner = this.inner.fork(Zone['wtfZoneSpec']);
+            self._inner = self._inner.fork(Zone['wtfZoneSpec']);
         }
         if (enableLongStackTrace && Zone['longStackTraceZoneSpec']) {
-            this.inner = this.inner.fork(Zone['longStackTraceZoneSpec']);
+            self._inner = self._inner.fork(Zone['longStackTraceZoneSpec']);
         }
-        this.forkInnerZoneWithAngularBehavior();
+        forkInnerZoneWithAngularBehavior(self);
     }
     /**
      * @return {?}
@@ -6196,14 +6216,14 @@ var NgZone = (function () {
      * @param {?} fn
      * @return {?}
      */
-    NgZone.prototype.run = function (fn) { return this.inner.run(fn); };
+    NgZone.prototype.run = function (fn) { return (((this)))._inner.run(fn); };
     /**
      * Same as `run`, except that synchronous errors are caught and forwarded via `onError` and not
      * rethrown.
      * @param {?} fn
      * @return {?}
      */
-    NgZone.prototype.runGuarded = function (fn) { return this.inner.runGuarded(fn); };
+    NgZone.prototype.runGuarded = function (fn) { return (((this)))._inner.runGuarded(fn); };
     /**
      * Executes the `fn` function synchronously in Angular's parent zone and returns value returned by
      * the function.
@@ -6219,178 +6239,98 @@ var NgZone = (function () {
      * @param {?} fn
      * @return {?}
      */
-    NgZone.prototype.runOutsideAngular = function (fn) { return this.outer.run(fn); };
-    Object.defineProperty(NgZone.prototype, "onUnstable", {
-        /**
-         * Notifies when code enters Angular Zone. This gets fired first on VM Turn.
-         * @return {?}
-         */
-        get: function () { return this._onUnstable; },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(NgZone.prototype, "onMicrotaskEmpty", {
-        /**
-         * Notifies when there is no more microtasks enqueue in the current VM Turn.
-         * This is a hint for Angular to do change detection, which may enqueue more microtasks.
-         * For this reason this event can fire multiple times per VM Turn.
-         * @return {?}
-         */
-        get: function () { return this._onMicrotaskEmpty; },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(NgZone.prototype, "onStable", {
-        /**
-         * Notifies when the last `onMicrotaskEmpty` has run and there are no more microtasks, which
-         * implies we are about to relinquish VM turn.
-         * This event gets called just once.
-         * @return {?}
-         */
-        get: function () { return this._onStable; },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(NgZone.prototype, "onError", {
-        /**
-         * Notify that an error has been delivered.
-         * @return {?}
-         */
-        get: function () { return this._onErrorEvents; },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(NgZone.prototype, "isStable", {
-        /**
-         * Whether there are no outstanding microtasks or macrotasks.
-         * @return {?}
-         */
-        get: function () { return this._isStable; },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(NgZone.prototype, "hasPendingMicrotasks", {
-        /**
-         * @return {?}
-         */
-        get: function () { return this._hasPendingMicrotasks; },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(NgZone.prototype, "hasPendingMacrotasks", {
-        /**
-         * @return {?}
-         */
-        get: function () { return this._hasPendingMacrotasks; },
-        enumerable: true,
-        configurable: true
-    });
-    /**
-     * @return {?}
-     */
-    NgZone.prototype.checkStable = function () {
-        var _this = this;
-        if (this._nesting == 0 && !this._hasPendingMicrotasks && !this._isStable) {
-            try {
-                this._nesting++;
-                this._onMicrotaskEmpty.emit(null);
-            }
-            finally {
-                this._nesting--;
-                if (!this._hasPendingMicrotasks) {
-                    try {
-                        this.runOutsideAngular(function () { return _this._onStable.emit(null); });
-                    }
-                    finally {
-                        this._isStable = true;
-                    }
-                }
-            }
-        }
-    };
-    /**
-     * @return {?}
-     */
-    NgZone.prototype.forkInnerZoneWithAngularBehavior = function () {
-        var _this = this;
-        this.inner = this.inner.fork({
-            name: 'angular',
-            properties: /** @type {?} */ ({ 'isAngularZone': true }),
-            onInvokeTask: function (delegate, current, target, task, applyThis, applyArgs) {
-                try {
-                    _this.onEnter();
-                    return delegate.invokeTask(target, task, applyThis, applyArgs);
-                }
-                finally {
-                    _this.onLeave();
-                }
-            },
-            onInvoke: function (delegate, current, target, callback, applyThis, applyArgs, source) {
-                try {
-                    _this.onEnter();
-                    return delegate.invoke(target, callback, applyThis, applyArgs, source);
-                }
-                finally {
-                    _this.onLeave();
-                }
-            },
-            onHasTask: function (delegate, current, target, hasTaskState) {
-                delegate.hasTask(target, hasTaskState);
-                if (current === target) {
-                    // We are only interested in hasTask events which originate from our zone
-                    // (A child hasTask event is not interesting to us)
-                    if (hasTaskState.change == 'microTask') {
-                        _this.setHasMicrotask(hasTaskState.microTask);
-                    }
-                    else if (hasTaskState.change == 'macroTask') {
-                        _this.setHasMacrotask(hasTaskState.macroTask);
-                    }
-                }
-            },
-            onHandleError: function (delegate, current, target, error) {
-                delegate.handleError(target, error);
-                _this.triggerError(error);
-                return false;
-            }
-        });
-    };
-    /**
-     * @return {?}
-     */
-    NgZone.prototype.onEnter = function () {
-        this._nesting++;
-        if (this._isStable) {
-            this._isStable = false;
-            this._onUnstable.emit(null);
-        }
-    };
-    /**
-     * @return {?}
-     */
-    NgZone.prototype.onLeave = function () {
-        this._nesting--;
-        this.checkStable();
-    };
-    /**
-     * @param {?} hasMicrotasks
-     * @return {?}
-     */
-    NgZone.prototype.setHasMicrotask = function (hasMicrotasks) {
-        this._hasPendingMicrotasks = hasMicrotasks;
-        this.checkStable();
-    };
-    /**
-     * @param {?} hasMacrotasks
-     * @return {?}
-     */
-    NgZone.prototype.setHasMacrotask = function (hasMacrotasks) { this._hasPendingMacrotasks = hasMacrotasks; };
-    /**
-     * @param {?} error
-     * @return {?}
-     */
-    NgZone.prototype.triggerError = function (error) { this._onErrorEvents.emit(error); };
+    NgZone.prototype.runOutsideAngular = function (fn) { return (((this)))._outer.run(fn); };
     return NgZone;
 }());
+/**
+ * @param {?} zone
+ * @return {?}
+ */
+function checkStable(zone) {
+    if (zone._nesting == 0 && !zone.hasPendingMicrotasks && !zone.isStable) {
+        try {
+            zone._nesting++;
+            zone.onMicrotaskEmpty.emit(null);
+        }
+        finally {
+            zone._nesting--;
+            if (!zone.hasPendingMicrotasks) {
+                try {
+                    zone.runOutsideAngular(function () { return zone.onStable.emit(null); });
+                }
+                finally {
+                    zone.isStable = true;
+                }
+            }
+        }
+    }
+}
+/**
+ * @param {?} zone
+ * @return {?}
+ */
+function forkInnerZoneWithAngularBehavior(zone) {
+    zone._inner = zone._inner.fork({
+        name: 'angular',
+        properties: /** @type {?} */ ({ 'isAngularZone': true }),
+        onInvokeTask: function (delegate, current, target, task, applyThis, applyArgs) {
+            try {
+                onEnter(zone);
+                return delegate.invokeTask(target, task, applyThis, applyArgs);
+            }
+            finally {
+                onLeave(zone);
+            }
+        },
+        onInvoke: function (delegate, current, target, callback, applyThis, applyArgs, source) {
+            try {
+                onEnter(zone);
+                return delegate.invoke(target, callback, applyThis, applyArgs, source);
+            }
+            finally {
+                onLeave(zone);
+            }
+        },
+        onHasTask: function (delegate, current, target, hasTaskState) {
+            delegate.hasTask(target, hasTaskState);
+            if (current === target) {
+                // We are only interested in hasTask events which originate from our zone
+                // (A child hasTask event is not interesting to us)
+                if (hasTaskState.change == 'microTask') {
+                    zone.hasPendingMicrotasks = hasTaskState.microTask;
+                    checkStable(zone);
+                }
+                else if (hasTaskState.change == 'macroTask') {
+                    zone.hasPendingMacrotasks = hasTaskState.macroTask;
+                }
+            }
+        },
+        onHandleError: function (delegate, current, target, error) {
+            delegate.handleError(target, error);
+            zone.onError.emit(error);
+            return false;
+        }
+    });
+}
+/**
+ * @param {?} zone
+ * @return {?}
+ */
+function onEnter(zone) {
+    zone._nesting++;
+    if (zone.isStable) {
+        zone.isStable = false;
+        zone.onUnstable.emit(null);
+    }
+}
+/**
+ * @param {?} zone
+ * @return {?}
+ */
+function onLeave(zone) {
+    zone._nesting--;
+    checkStable(zone);
+}
 /**
  * @license
  * Copyright Google Inc. All Rights Reserved.
@@ -8355,7 +8295,7 @@ var ChangeDetectorRef = (function () {
      * class Cmp {
      *   numberOfTicks = 0;
      *
-     *   constructor(ref: ChangeDetectorRef) {
+     *   constructor(private ref: ChangeDetectorRef) {
      *     setInterval(() => {
      *       this.numberOfTicks ++
      *       // the following is required, otherwise the view will not be updated
@@ -9414,10 +9354,10 @@ var DefaultIterableDiffer = (function () {
         // The previous record after which we will append the current one.
         var /** @type {?} */ previousRecord;
         if (record === null) {
-            previousRecord = ((this._itTail));
+            previousRecord = this._itTail;
         }
         else {
-            previousRecord = ((record._prev));
+            previousRecord = record._prev;
             // Remove the record from the collection since we know it does not match the item.
             this._remove(record);
         }
@@ -9855,13 +9795,13 @@ var _DuplicateItemRecordList = (function () {
     };
     /**
      * @param {?} trackById
-     * @param {?} afterIndex
+     * @param {?} atOrAfterIndex
      * @return {?}
      */
-    _DuplicateItemRecordList.prototype.get = function (trackById, afterIndex) {
+    _DuplicateItemRecordList.prototype.get = function (trackById, atOrAfterIndex) {
         var /** @type {?} */ record;
         for (record = this._head; record !== null; record = record._nextDup) {
-            if ((afterIndex === null || afterIndex < ((record.currentIndex))) &&
+            if ((atOrAfterIndex === null || atOrAfterIndex <= ((record.currentIndex))) &&
                 looseIdentical(record.trackById, trackById)) {
                 return record;
             }
@@ -9921,18 +9861,18 @@ var _DuplicateMap = (function () {
     };
     /**
      * Retrieve the `value` using key. Because the IterableChangeRecord_ value may be one which we
-     * have already iterated over, we use the afterIndex to pretend it is not there.
+     * have already iterated over, we use the `atOrAfterIndex` to pretend it is not there.
      *
      * Use case: `[a, b, c, a, a]` if we are at index `3` which is the second `a` then asking if we
-     * have any more `a`s needs to return the last `a` not the first or second.
+     * have any more `a`s needs to return the second `a`.
      * @param {?} trackById
-     * @param {?} afterIndex
+     * @param {?} atOrAfterIndex
      * @return {?}
      */
-    _DuplicateMap.prototype.get = function (trackById, afterIndex) {
+    _DuplicateMap.prototype.get = function (trackById, atOrAfterIndex) {
         var /** @type {?} */ key = trackById;
         var /** @type {?} */ recordList = this.map.get(key);
-        return recordList ? recordList.get(trackById, afterIndex) : null;
+        return recordList ? recordList.get(trackById, atOrAfterIndex) : null;
     };
     /**
      * Removes a {\@link IterableChangeRecord_} from the list of duplicates.
@@ -13928,10 +13868,18 @@ function pureArrayDef(argCount) {
     return _pureExpressionDef(32 /* TypePureArray */, new Array(argCount));
 }
 /**
- * @param {?} propertyNames
+ * @param {?} propToIndex
  * @return {?}
  */
-function pureObjectDef(propertyNames) {
+function pureObjectDef(propToIndex) {
+    var /** @type {?} */ keys = Object.keys(propToIndex);
+    var /** @type {?} */ nbKeys = keys.length;
+    var /** @type {?} */ propertyNames = new Array(nbKeys);
+    for (var /** @type {?} */ i = 0; i < nbKeys; i++) {
+        var /** @type {?} */ key = keys[i];
+        var /** @type {?} */ index = propToIndex[key];
+        propertyNames[index] = key;
+    }
     return _pureExpressionDef(64 /* TypePureObject */, propertyNames);
 }
 /**
@@ -14900,6 +14848,8 @@ function checkNoChangesNodeDynamic(view, nodeDef, values) {
     }
 }
 /**
+ * Workaround https://github.com/angular/tsickle/issues/497
+ * @suppress {misplacedTypeAnnotation}
  * @param {?} view
  * @param {?} nodeDef
  * @return {?}
@@ -16294,24 +16244,25 @@ var NgModuleFactory_ = (function (_super) {
  */
 /**
  * `trigger` is an animation-specific function that is designed to be used inside of Angular's
- * animation DSL language. If this information is new, please navigate to the {\@link
- * Component#animations component animations metadata page} to gain a better understanding of
- * how animations in Angular are used.
+ * animation DSL language. If this information is new, please navigate to the
+ * {\@link Component#animations component animations metadata page} to gain a better
+ * understanding of how animations in Angular are used.
  *
- * `trigger` Creates an animation trigger which will a list of {\@link state state} and {\@link
- * transition transition} entries that will be evaluated when the expression bound to the trigger
- * changes.
+ * `trigger` Creates an animation trigger which will a list of {\@link state state} and
+ * {\@link transition transition} entries that will be evaluated when the expression
+ * bound to the trigger changes.
  *
- * Triggers are registered within the component annotation data under the {\@link
- * Component#animations animations section}. An animation trigger can be placed on an element
- * within a template by referencing the name of the trigger followed by the expression value that the
+ * Triggers are registered within the component annotation data under the
+ * {\@link Component#animations animations section}. An animation trigger can be placed on an element
+ * within a template by referencing the name of the trigger followed by the expression value that
+ * the
  * trigger is bound to (in the form of `[\@triggerName]="expression"`.
  *
  * ### Usage
  *
  * `trigger` will create an animation trigger reference based on the provided `name` value. The
- * provided `animation` value is expected to be an array consisting of {\@link state state} and {\@link
- * transition transition} declarations.
+ * provided `animation` value is expected to be an array consisting of {\@link state state} and
+ * {\@link transition transition} declarations.
  *
  * ```typescript
  * \@Component({
@@ -16337,9 +16288,65 @@ var NgModuleFactory_ = (function (_super) {
  * ```html
  * <!-- somewhere inside of my-component-tpl.html -->
  * <div [\@myAnimationTrigger]="myStatusExp">...</div>
- * tools/gulp-tasks/validate-commit-message.js ```
+ * ```
  *
- * {\@example core/animation/ts/dsl/animation_example.ts region='Component'}
+ * ## Disable Child Animations
+ * A special animation control binding called `\@.disabled` can be placed on an element which will
+ * then disable animations for any inner animation triggers situated within the element.
+ *
+ * When true, the `\@.disabled` binding will prevent inner animations from rendering. The example
+ * below shows how to use this feature:
+ *
+ * ```ts
+ * \@Component({
+ *   selector: 'my-component',
+ *   template: `
+ *     <div [\@.disabled]="isDisabled">
+ *       <div [\@childAnimation]="exp"></div>
+ *     </div>
+ *   `,
+ *   animations: [
+ *     trigger("childAnimation", [
+ *       // ...
+ *     ])
+ *   ]
+ * })
+ * class MyComponent {
+ *   isDisabled = true;
+ *   exp = '...';
+ * }
+ * ```
+ *
+ * The `\@childAnimation` trigger will not animate because `\@.disabled` prevents it from happening
+ * (when true).
+ *
+ * Note that `\@.disbled` will only disable inner animations (any animations running on the same
+ * element will not be disabled).
+ *
+ * ### Disabling Animations Application-wide
+ * When an area of the template is set to have animations disabled, **all** inner components will
+ * also have their animations disabled as well. This means that all animations for an angular
+ * application can be disabled by placing a host binding set on `\@.disabled` on the topmost Angular
+ * component.
+ *
+ * ```ts
+ * import {Component, HostBinding} from '\@angular/core';
+ *
+ * \@Component({
+ *   selector: 'app-component',
+ *   templateUrl: 'app.component.html',
+ * })
+ * class AppComponent {
+ *   \@HostBinding('\@.disabled')
+ *   public animationsDisabled = true;
+ * }
+ * ```
+ *
+ * ### What about animations that us `query()` and `animateChild()`?
+ * Despite inner animations being disabled, a parent animation can {\@link query query} for inner
+ * elements located in disabled areas of the template and still animate them as it sees fit. This is
+ * also the case for when a sub animation is queried by a parent and then later animated using {\@link
+ * animateChild animateChild}.
  *
  * \@experimental Animation support is experimental.
  * @param {?} name
@@ -16408,7 +16415,7 @@ function animate$1(timings, styles) {
  * how animations in Angular are used.
  *
  * `group` specifies a list of animation steps that are all run in parallel. Grouped animations are
- * useful when a series of styles must be animated/closed off at different statrting/ending times.
+ * useful when a series of styles must be animated/closed off at different starting/ending times.
  *
  * The `group` function can either be used within a {\@link sequence sequence} or a {\@link transition
  * transition} and it will only continue to the next instruction once all of the inner animation
@@ -17351,7 +17358,7 @@ var core_es5 = Object.freeze({
 });
 
 /**
- * @license Angular v4.2.4
+ * @license Angular v4.3.1
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -18504,6 +18511,28 @@ function getPluralCase(locale, nLike) {
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
+ * @param {?} cookieStr
+ * @param {?} name
+ * @return {?}
+ */
+function parseCookieValue(cookieStr, name) {
+    name = encodeURIComponent(name);
+    for (var _i = 0, _a = cookieStr.split(';'); _i < _a.length; _i++) {
+        var cookie = _a[_i];
+        var /** @type {?} */ eqIndex = cookie.indexOf('=');
+        var _b = eqIndex == -1 ? [cookie, ''] : [cookie.slice(0, eqIndex), cookie.slice(eqIndex + 1)], cookieName = _b[0], cookieValue = _b[1];
+        if (cookieName.trim() === name) {
+            return decodeURIComponent(cookieValue);
+        }
+    }
+    return null;
+}
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
  */
 /**
  * \@ngModule CommonModule
@@ -19148,7 +19177,7 @@ function getTypeNameForDebugging$1(type) {
  * A common pattern is that we need to show a set of properties from the same object. If the
  * object is undefined, then we have to use the safe-traversal-operator `?.` to guard against
  * dereferencing a `null` value. This is especially the case when waiting on async data such as
- * when using the `async` pipe as shown in folowing example:
+ * when using the `async` pipe as shown in following example:
  *
  * ```
  * Hello {{ (userStream|async)?.last }}, {{ (userStream|async)?.first }}!
@@ -20409,7 +20438,7 @@ function nameCondition(prop, len) {
  * @return {?}
  */
 function combine(options) {
-    return ((Object)).assign.apply(((Object)), [{}].concat(options));
+    return options.reduce(function (merged, opt) { return (Object.assign({}, merged, opt)); }, {});
 }
 /**
  * @param {?} ret
@@ -21200,6 +21229,22 @@ CommonModule.ctorParameters = function () { return []; };
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
+/**
+ * A DI Token representing the main rendering context. In a browser this is the DOM Document.
+ *
+ * Note: Document might not be available in the Application Context when Application and Rendering
+ * Contexts are not the same (e.g. when running the application into a Web Worker).
+ *
+ * \@stable
+ */
+var DOCUMENT = new InjectionToken('DocumentToken');
+/**
+ * @license
+ * Copyright Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.io/license
+ */
 var PLATFORM_BROWSER_ID = 'browser';
 var PLATFORM_SERVER_ID = 'server';
 var PLATFORM_WORKER_APP_ID = 'browserWorkerApp';
@@ -21255,7 +21300,7 @@ function isPlatformWorkerUi(platformId) {
 /**
  * \@stable
  */
-var VERSION$2 = new Version('4.2.4');
+var VERSION$2 = new Version('4.3.1');
 
 
 
@@ -21263,6 +21308,7 @@ var VERSION$2 = new Version('4.2.4');
 var common_es5 = Object.freeze({
 	NgLocaleLocalization: NgLocaleLocalization,
 	NgLocalization: NgLocalization,
+	ɵparseCookieValue: parseCookieValue,
 	CommonModule: CommonModule,
 	NgClass: NgClass,
 	NgFor: NgFor,
@@ -21278,6 +21324,7 @@ var common_es5 = Object.freeze({
 	NgSwitchDefault: NgSwitchDefault,
 	NgTemplateOutlet: NgTemplateOutlet,
 	NgComponentOutlet: NgComponentOutlet,
+	DOCUMENT: DOCUMENT,
 	AsyncPipe: AsyncPipe,
 	DatePipe: DatePipe,
 	I18nPluralPipe: I18nPluralPipe,
@@ -21311,7 +21358,7 @@ var common_es5 = Object.freeze({
 });
 
 /**
- * @license Angular v4.2.4
+ * @license Angular v4.3.1
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -23097,23 +23144,6 @@ function relativePath(url) {
         '/' + urlParsingNode.pathname;
 }
 /**
- * @param {?} cookieStr
- * @param {?} name
- * @return {?}
- */
-function parseCookieValue(cookieStr, name) {
-    name = encodeURIComponent(name);
-    for (var _i = 0, _a = cookieStr.split(';'); _i < _a.length; _i++) {
-        var cookie = _a[_i];
-        var /** @type {?} */ eqIndex = cookie.indexOf('=');
-        var _b = eqIndex == -1 ? [cookie, ''] : [cookie.slice(0, eqIndex), cookie.slice(eqIndex + 1)], cookieName = _b[0], cookieValue = _b[1];
-        if (cookieName.trim() === name) {
-            return decodeURIComponent(cookieValue);
-        }
-    }
-    return null;
-}
-/**
  * @license
  * Copyright Google Inc. All Rights Reserved.
  *
@@ -23126,9 +23156,9 @@ function parseCookieValue(cookieStr, name) {
  * Note: Document might not be available in the Application Context when Application and Rendering
  * Contexts are not the same (e.g. when running the application into a Web Worker).
  *
- * \@stable
+ * @deprecated import from `\@angular/common` instead.
  */
-var DOCUMENT = new InjectionToken('DocumentToken');
+var DOCUMENT$1 = DOCUMENT;
 /**
  * @license
  * Copyright Google Inc. All Rights Reserved.
@@ -23271,7 +23301,7 @@ BrowserPlatformLocation.decorators = [
  * @nocollapse
  */
 BrowserPlatformLocation.ctorParameters = function () { return [
-    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT,] },] },
+    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT$1,] },] },
 ]; };
 /**
  * @license
@@ -23427,7 +23457,7 @@ Meta.decorators = [
  * @nocollapse
  */
 Meta.ctorParameters = function () { return [
-    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT,] },] },
+    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT$1,] },] },
 ]; };
 /**
  * @license
@@ -23463,7 +23493,7 @@ var SERVER_TRANSITION_PROVIDERS = [
     {
         provide: APP_INITIALIZER,
         useFactory: appInitializerFactory,
-        deps: [TRANSITION_ID, DOCUMENT, Injector],
+        deps: [TRANSITION_ID, DOCUMENT$1, Injector],
         multi: true
     },
 ];
@@ -23584,7 +23614,7 @@ Title.decorators = [
  * @nocollapse
  */
 Title.ctorParameters = function () { return [
-    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT,] },] },
+    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT$1,] },] },
 ]; };
 /**
  * @license
@@ -23915,7 +23945,7 @@ DomSharedStylesHost.decorators = [
  * @nocollapse
  */
 DomSharedStylesHost.ctorParameters = function () { return [
-    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT,] },] },
+    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT$1,] },] },
 ]; };
 /**
  * @license
@@ -24394,7 +24424,7 @@ DomEventsPlugin.decorators = [
  * @nocollapse
  */
 DomEventsPlugin.ctorParameters = function () { return [
-    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT,] },] },
+    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT$1,] },] },
 ]; };
 /**
  * @license
@@ -24535,7 +24565,7 @@ HammerGesturesPlugin.decorators = [
  * @nocollapse
  */
 HammerGesturesPlugin.ctorParameters = function () { return [
-    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT,] },] },
+    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT$1,] },] },
     { type: HammerGestureConfig, decorators: [{ type: Inject, args: [HAMMER_GESTURE_CONFIG,] },] },
 ]; };
 /**
@@ -24671,7 +24701,7 @@ KeyEventsPlugin.decorators = [
  * @nocollapse
  */
 KeyEventsPlugin.ctorParameters = function () { return [
-    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT,] },] },
+    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT$1,] },] },
 ]; };
 /**
  * @license
@@ -24831,7 +24861,7 @@ var HTML_ATTRS = tagSet('abbr,accesskey,align,alt,autoplay,axis,bgcolor,border,c
     'ismap,itemscope,itemprop,kind,label,lang,language,loop,media,muted,nohref,nowrap,open,preload,rel,rev,role,rows,rowspan,rules,' +
     'scope,scrolling,shape,size,sizes,span,srclang,start,summary,tabindex,target,title,translate,type,usemap,' +
     'valign,value,vspace,width');
-// NB: This currently conciously doesn't support SVG. SVG sanitization has had several security
+// NB: This currently consciously doesn't support SVG. SVG sanitization has had several security
 // issues in the past, so it seems safer to leave it out if possible. If support for binding SVG via
 // innerHTML is required, SVG attributes should be added here.
 // NB: Sanitization does not allow <form> elements or other active elements (<button> etc). Those
@@ -25345,7 +25375,7 @@ DomSanitizerImpl.decorators = [
  * @nocollapse
  */
 DomSanitizerImpl.ctorParameters = function () { return [
-    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT,] },] },
+    { type: undefined, decorators: [{ type: Inject, args: [DOCUMENT$1,] },] },
 ]; };
 /**
  * @abstract
@@ -25438,7 +25468,7 @@ var INTERNAL_BROWSER_PLATFORM_PROVIDERS = [
     { provide: PLATFORM_ID, useValue: PLATFORM_BROWSER_ID },
     { provide: PLATFORM_INITIALIZER, useValue: initDomAdapter, multi: true },
     { provide: PlatformLocation, useClass: BrowserPlatformLocation },
-    { provide: DOCUMENT, useFactory: _document, deps: [] },
+    { provide: DOCUMENT$1, useFactory: _document, deps: [] },
 ];
 /**
  * \@security Replacing built-in sanitization providers exposes the application to XSS risks.
@@ -25733,7 +25763,7 @@ var By = (function () {
 /**
  * \@stable
  */
-var VERSION$1 = new Version('4.2.4');
+var VERSION$1 = new Version('4.3.1');
 
 
 
@@ -25747,7 +25777,7 @@ var platformBrowser_es5 = Object.freeze({
 	enableDebugTools: enableDebugTools,
 	By: By,
 	NgProbeToken: NgProbeToken$1,
-	DOCUMENT: DOCUMENT,
+	DOCUMENT: DOCUMENT$1,
 	EVENT_MANAGER_PLUGINS: EVENT_MANAGER_PLUGINS,
 	EventManager: EventManager,
 	HAMMER_GESTURE_CONFIG: HAMMER_GESTURE_CONFIG,
@@ -25786,7 +25816,7 @@ var platformBrowser_es5 = Object.freeze({
 });
 
 /**
- * @license Angular v4.2.4
+ * @license Angular v4.3.1
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -27927,7 +27957,7 @@ JsonpModule.ctorParameters = function () { return []; };
 /**
  * \@stable
  */
-var VERSION$3 = new Version('4.2.4');
+var VERSION$3 = new Version('4.3.1');
 
 var __extends$13 = (commonjsGlobal && commonjsGlobal.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
@@ -28448,7 +28478,7 @@ var Notification = (function () {
         if (typeof value !== 'undefined') {
             return new Notification('N', value);
         }
-        return this.undefinedValueNotification;
+        return Notification.undefinedValueNotification;
     };
     /**
      * A shortcut to create a Notification instance of the type `error` from a
@@ -28465,7 +28495,7 @@ var Notification = (function () {
      * @return {Notification<any>} The valueless "complete" Notification.
      */
     Notification.createComplete = function () {
-        return this.completeNotification;
+        return Notification.completeNotification;
     };
     Notification.completeNotification = new Notification('C');
     Notification.undefinedValueNotification = new Notification('N', undefined);
@@ -29257,6 +29287,129 @@ var __extends$23 = (commonjsGlobal && commonjsGlobal.__extends) || function (d, 
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 
+
+/* tslint:enable:max-line-length */
+/**
+ * Returns an Observable that emits only the last item emitted by the source Observable.
+ * It optionally takes a predicate function as a parameter, in which case, rather than emitting
+ * the last item from the source Observable, the resulting Observable will emit the last item
+ * from the source Observable that satisfies the predicate.
+ *
+ * <img src="./img/last.png" width="100%">
+ *
+ * @throws {EmptyError} Delivers an EmptyError to the Observer's `error`
+ * callback if the Observable completes before any `next` notification was sent.
+ * @param {function} predicate - The condition any source emitted item has to satisfy.
+ * @return {Observable} An Observable that emits only the last item satisfying the given condition
+ * from the source, or an NoSuchElementException if no such items are emitted.
+ * @throws - Throws if no items that match the predicate are emitted by the source Observable.
+ * @method last
+ * @owner Observable
+ */
+function last(predicate, resultSelector, defaultValue) {
+    return this.lift(new LastOperator(predicate, resultSelector, defaultValue, this));
+}
+var last_2 = last;
+var LastOperator = (function () {
+    function LastOperator(predicate, resultSelector, defaultValue, source) {
+        this.predicate = predicate;
+        this.resultSelector = resultSelector;
+        this.defaultValue = defaultValue;
+        this.source = source;
+    }
+    LastOperator.prototype.call = function (observer, source) {
+        return source.subscribe(new LastSubscriber(observer, this.predicate, this.resultSelector, this.defaultValue, this.source));
+    };
+    return LastOperator;
+}());
+/**
+ * We need this JSDoc comment for affecting ESDoc.
+ * @ignore
+ * @extends {Ignored}
+ */
+var LastSubscriber = (function (_super) {
+    __extends$23(LastSubscriber, _super);
+    function LastSubscriber(destination, predicate, resultSelector, defaultValue, source) {
+        _super.call(this, destination);
+        this.predicate = predicate;
+        this.resultSelector = resultSelector;
+        this.defaultValue = defaultValue;
+        this.source = source;
+        this.hasValue = false;
+        this.index = 0;
+        if (typeof defaultValue !== 'undefined') {
+            this.lastValue = defaultValue;
+            this.hasValue = true;
+        }
+    }
+    LastSubscriber.prototype._next = function (value) {
+        var index = this.index++;
+        if (this.predicate) {
+            this._tryPredicate(value, index);
+        }
+        else {
+            if (this.resultSelector) {
+                this._tryResultSelector(value, index);
+                return;
+            }
+            this.lastValue = value;
+            this.hasValue = true;
+        }
+    };
+    LastSubscriber.prototype._tryPredicate = function (value, index) {
+        var result;
+        try {
+            result = this.predicate(value, index, this.source);
+        }
+        catch (err) {
+            this.destination.error(err);
+            return;
+        }
+        if (result) {
+            if (this.resultSelector) {
+                this._tryResultSelector(value, index);
+                return;
+            }
+            this.lastValue = value;
+            this.hasValue = true;
+        }
+    };
+    LastSubscriber.prototype._tryResultSelector = function (value, index) {
+        var result;
+        try {
+            result = this.resultSelector(value, index);
+        }
+        catch (err) {
+            this.destination.error(err);
+            return;
+        }
+        this.lastValue = result;
+        this.hasValue = true;
+    };
+    LastSubscriber.prototype._complete = function () {
+        var destination = this.destination;
+        if (this.hasValue) {
+            destination.next(this.lastValue);
+            destination.complete();
+        }
+        else {
+            destination.error(new EmptyError_1.EmptyError);
+        }
+    };
+    return LastSubscriber;
+}(Subscriber_1.Subscriber));
+
+
+var last_1 = {
+	last: last_2
+};
+
+var __extends$24 = (commonjsGlobal && commonjsGlobal.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
+
 /**
  * Applies a given `project` function to each value emitted by the source
  * Observable, and emits the resulting values as an Observable.
@@ -29314,7 +29467,7 @@ var MapOperator_1 = MapOperator;
  * @extends {Ignored}
  */
 var MapSubscriber = (function (_super) {
-    __extends$23(MapSubscriber, _super);
+    __extends$24(MapSubscriber, _super);
     function MapSubscriber(destination, project, thisArg) {
         _super.call(this, destination);
         this.project = project;
@@ -29343,7 +29496,7 @@ var map_1 = {
 	MapOperator: MapOperator_1
 };
 
-var __extends$24 = (commonjsGlobal && commonjsGlobal.__extends) || function (d, b) {
+var __extends$25 = (commonjsGlobal && commonjsGlobal.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
@@ -29426,7 +29579,7 @@ var ReduceOperator_1 = ReduceOperator;
  * @extends {Ignored}
  */
 var ReduceSubscriber = (function (_super) {
-    __extends$24(ReduceSubscriber, _super);
+    __extends$25(ReduceSubscriber, _super);
     function ReduceSubscriber(destination, accumulator, seed, hasSeed) {
         _super.call(this, destination);
         this.accumulator = accumulator;
@@ -29475,7 +29628,7 @@ var reduce_1 = {
 	ReduceSubscriber: ReduceSubscriber_1
 };
 
-var __extends$25 = (commonjsGlobal && commonjsGlobal.__extends) || function (d, b) {
+var __extends$26 = (commonjsGlobal && commonjsGlobal.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
@@ -29562,7 +29715,7 @@ var CatchOperator = (function () {
  * @extends {Ignored}
  */
 var CatchSubscriber = (function (_super) {
-    __extends$25(CatchSubscriber, _super);
+    __extends$26(CatchSubscriber, _super);
     function CatchSubscriber(destination, selector, caught) {
         _super.call(this, destination);
         this.selector = selector;
@@ -29659,129 +29812,6 @@ var fromPromise_1 = PromiseObservable_1.PromiseObservable.create;
 
 var fromPromise = {
 	fromPromise: fromPromise_1
-};
-
-var __extends$26 = (commonjsGlobal && commonjsGlobal.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
-
-
-/* tslint:enable:max-line-length */
-/**
- * Returns an Observable that emits only the last item emitted by the source Observable.
- * It optionally takes a predicate function as a parameter, in which case, rather than emitting
- * the last item from the source Observable, the resulting Observable will emit the last item
- * from the source Observable that satisfies the predicate.
- *
- * <img src="./img/last.png" width="100%">
- *
- * @throws {EmptyError} Delivers an EmptyError to the Observer's `error`
- * callback if the Observable completes before any `next` notification was sent.
- * @param {function} predicate - The condition any source emitted item has to satisfy.
- * @return {Observable} An Observable that emits only the last item satisfying the given condition
- * from the source, or an NoSuchElementException if no such items are emitted.
- * @throws - Throws if no items that match the predicate are emitted by the source Observable.
- * @method last
- * @owner Observable
- */
-function last(predicate, resultSelector, defaultValue) {
-    return this.lift(new LastOperator(predicate, resultSelector, defaultValue, this));
-}
-var last_2 = last;
-var LastOperator = (function () {
-    function LastOperator(predicate, resultSelector, defaultValue, source) {
-        this.predicate = predicate;
-        this.resultSelector = resultSelector;
-        this.defaultValue = defaultValue;
-        this.source = source;
-    }
-    LastOperator.prototype.call = function (observer, source) {
-        return source.subscribe(new LastSubscriber(observer, this.predicate, this.resultSelector, this.defaultValue, this.source));
-    };
-    return LastOperator;
-}());
-/**
- * We need this JSDoc comment for affecting ESDoc.
- * @ignore
- * @extends {Ignored}
- */
-var LastSubscriber = (function (_super) {
-    __extends$26(LastSubscriber, _super);
-    function LastSubscriber(destination, predicate, resultSelector, defaultValue, source) {
-        _super.call(this, destination);
-        this.predicate = predicate;
-        this.resultSelector = resultSelector;
-        this.defaultValue = defaultValue;
-        this.source = source;
-        this.hasValue = false;
-        this.index = 0;
-        if (typeof defaultValue !== 'undefined') {
-            this.lastValue = defaultValue;
-            this.hasValue = true;
-        }
-    }
-    LastSubscriber.prototype._next = function (value) {
-        var index = this.index++;
-        if (this.predicate) {
-            this._tryPredicate(value, index);
-        }
-        else {
-            if (this.resultSelector) {
-                this._tryResultSelector(value, index);
-                return;
-            }
-            this.lastValue = value;
-            this.hasValue = true;
-        }
-    };
-    LastSubscriber.prototype._tryPredicate = function (value, index) {
-        var result;
-        try {
-            result = this.predicate(value, index, this.source);
-        }
-        catch (err) {
-            this.destination.error(err);
-            return;
-        }
-        if (result) {
-            if (this.resultSelector) {
-                this._tryResultSelector(value, index);
-                return;
-            }
-            this.lastValue = value;
-            this.hasValue = true;
-        }
-    };
-    LastSubscriber.prototype._tryResultSelector = function (value, index) {
-        var result;
-        try {
-            result = this.resultSelector(value, index);
-        }
-        catch (err) {
-            this.destination.error(err);
-            return;
-        }
-        this.lastValue = result;
-        this.hasValue = true;
-    };
-    LastSubscriber.prototype._complete = function () {
-        var destination = this.destination;
-        if (this.hasValue) {
-            destination.next(this.lastValue);
-            destination.complete();
-        }
-        else {
-            destination.error(new EmptyError_1.EmptyError);
-        }
-    };
-    return LastSubscriber;
-}(Subscriber_1.Subscriber));
-
-
-var last_1 = {
-	last: last_2
 };
 
 var __extends$27 = (commonjsGlobal && commonjsGlobal.__extends) || function (d, b) {
@@ -29882,7 +29912,7 @@ var filter_1 = {
 };
 
 /**
- * @license Angular v4.2.4
+ * @license Angular v4.3.1
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -30049,6 +30079,116 @@ var RouteConfigLoadEnd = (function () {
      */
     RouteConfigLoadEnd.prototype.toString = function () { return "RouteConfigLoadEnd(path: " + this.route.path + ")"; };
     return RouteConfigLoadEnd;
+}());
+/**
+ * \@whatItDoes Represents the start of the Guard phase of routing.
+ *
+ * \@experimental
+ */
+var GuardsCheckStart = (function () {
+    /**
+     * @param {?} id
+     * @param {?} url
+     * @param {?} urlAfterRedirects
+     * @param {?} state
+     */
+    function GuardsCheckStart(id, url, urlAfterRedirects, state) {
+        this.id = id;
+        this.url = url;
+        this.urlAfterRedirects = urlAfterRedirects;
+        this.state = state;
+    }
+    /**
+     * @return {?}
+     */
+    GuardsCheckStart.prototype.toString = function () {
+        return "GuardsCheckStart(id: " + this.id + ", url: '" + this.url + "', urlAfterRedirects: '" + this.urlAfterRedirects + "', state: " + this.state + ")";
+    };
+    return GuardsCheckStart;
+}());
+/**
+ * \@whatItDoes Represents the end of the Guard phase of routing.
+ *
+ * \@experimental
+ */
+var GuardsCheckEnd = (function () {
+    /**
+     * @param {?} id
+     * @param {?} url
+     * @param {?} urlAfterRedirects
+     * @param {?} state
+     * @param {?} shouldActivate
+     */
+    function GuardsCheckEnd(id, url, urlAfterRedirects, state, shouldActivate) {
+        this.id = id;
+        this.url = url;
+        this.urlAfterRedirects = urlAfterRedirects;
+        this.state = state;
+        this.shouldActivate = shouldActivate;
+    }
+    /**
+     * @return {?}
+     */
+    GuardsCheckEnd.prototype.toString = function () {
+        return "GuardsCheckEnd(id: " + this.id + ", url: '" + this.url + "', urlAfterRedirects: '" + this.urlAfterRedirects + "', state: " + this.state + ", shouldActivate: " + this.shouldActivate + ")";
+    };
+    return GuardsCheckEnd;
+}());
+/**
+ * \@whatItDoes Represents the start of the Resolve phase of routing. The timing of this
+ * event may change, thus it's experimental. In the current iteration it will run
+ * in the "resolve" phase whether there's things to resolve or not. In the future this
+ * behavior may change to only run when there are things to be resolved.
+ *
+ * \@experimental
+ */
+var ResolveStart = (function () {
+    /**
+     * @param {?} id
+     * @param {?} url
+     * @param {?} urlAfterRedirects
+     * @param {?} state
+     */
+    function ResolveStart(id, url, urlAfterRedirects, state) {
+        this.id = id;
+        this.url = url;
+        this.urlAfterRedirects = urlAfterRedirects;
+        this.state = state;
+    }
+    /**
+     * @return {?}
+     */
+    ResolveStart.prototype.toString = function () {
+        return "ResolveStart(id: " + this.id + ", url: '" + this.url + "', urlAfterRedirects: '" + this.urlAfterRedirects + "', state: " + this.state + ")";
+    };
+    return ResolveStart;
+}());
+/**
+ * \@whatItDoes Represents the end of the Resolve phase of routing. See note on
+ * {\@link ResolveStart} for use of this experimental API.
+ *
+ * \@experimental
+ */
+var ResolveEnd = (function () {
+    /**
+     * @param {?} id
+     * @param {?} url
+     * @param {?} urlAfterRedirects
+     * @param {?} state
+     */
+    function ResolveEnd(id, url, urlAfterRedirects, state) {
+        this.id = id;
+        this.url = url;
+        this.urlAfterRedirects = urlAfterRedirects;
+        this.state = state;
+    }
+    /**
+     * @return {?}
+     */
+    ResolveEnd.prototype.toString = function () {
+        return "ResolveEnd(id: " + this.id + ", url: '" + this.url + "', urlAfterRedirects: '" + this.urlAfterRedirects + "', state: " + this.state + ")";
+    };
+    return ResolveEnd;
 }());
 /**
  * @license
@@ -30586,7 +30726,7 @@ var UrlSegmentGroup = (function () {
         forEach(children, function (v, k) { return v.parent = _this; });
     }
     /**
-     * Wether the segment has child segments
+     * Whether the segment has child segments
      * @return {?}
      */
     UrlSegmentGroup.prototype.hasChildren = function () { return this.numberOfChildren > 0; };
@@ -30811,11 +30951,25 @@ function serializeSegment(segment, root) {
     }
 }
 /**
+ * This method is intended for encoding *key* or *value* parts of query component. We need a custom
+ * method because encodeURIComponent is too aggressive and encodes stuff that doesn't have to be
+ * encoded per http://tools.ietf.org/html/rfc3986:
+ *    query         = *( pchar / "/" / "?" )
+ *    pchar         = unreserved / pct-encoded / sub-delims / ":" / "\@"
+ *    unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
+ *    pct-encoded   = "%" HEXDIG HEXDIG
+ *    sub-delims    = "!" / "$" / "&" / "'" / "(" / ")"
+ *                     / "*" / "+" / "," / ";" / "="
  * @param {?} s
  * @return {?}
  */
 function encode(s) {
-    return encodeURIComponent(s);
+    return encodeURIComponent(s)
+        .replace(/%40/g, '@')
+        .replace(/%3A/gi, ':')
+        .replace(/%24/g, '$')
+        .replace(/%2C/gi, ',')
+        .replace(/%3B/gi, ';');
 }
 /**
  * @param {?} s
@@ -32952,7 +33106,8 @@ function match$1(segmentGroup, route, segments) {
         throw new NoMatch$1();
     var /** @type {?} */ posParams = {};
     forEach(/** @type {?} */ ((res.posParams)), function (v, k) { posParams[k] = v.path; });
-    var /** @type {?} */ parameters = Object.assign({}, posParams, res.consumed[res.consumed.length - 1].parameters);
+    var /** @type {?} */ parameters = res.consumed.length > 0 ? Object.assign({}, posParams, res.consumed[res.consumed.length - 1].parameters) :
+        posParams;
     return { consumedSegments: res.consumed, lastChild: res.consumed.length, parameters: parameters };
 }
 /**
@@ -33522,6 +33677,7 @@ var Router = (function () {
     Router.prototype.resetConfig = function (config) {
         validateConfig(config);
         this.config = config;
+        this.navigated = false;
     };
     /**
      * \@docsNotRequired
@@ -33839,15 +33995,21 @@ var Router = (function () {
                 var appliedUrl = _a.appliedUrl, snapshot = _a.snapshot;
                 if (_this.navigationId !== id)
                     return of_1(false);
+                _this.triggerEvent(new GuardsCheckStart(id, _this.serializeUrl(url), appliedUrl, snapshot));
                 return map_2.call(preActivation.checkGuards(), function (shouldActivate) {
+                    _this.triggerEvent(new GuardsCheckEnd(id, _this.serializeUrl(url), appliedUrl, snapshot, shouldActivate));
                     return { appliedUrl: appliedUrl, snapshot: snapshot, shouldActivate: shouldActivate };
                 });
             });
             var /** @type {?} */ preactivationResolveData$ = mergeMap_2.call(preactivationCheckGuards$, function (p) {
                 if (_this.navigationId !== id)
                     return of_1(false);
-                if (p.shouldActivate) {
-                    return map_2.call(preActivation.resolveData(), function () { return p; });
+                if (p.shouldActivate && preActivation.isActivating()) {
+                    _this.triggerEvent(new ResolveStart(id, _this.serializeUrl(url), p.appliedUrl, p.snapshot));
+                    return map_2.call(preActivation.resolveData(), function () {
+                        _this.triggerEvent(new ResolveEnd(id, _this.serializeUrl(url), p.appliedUrl, p.snapshot));
+                        return p;
+                    });
                 }
                 else {
                     return of_1(p);
@@ -33994,7 +34156,7 @@ var PreActivation = (function () {
      */
     PreActivation.prototype.checkGuards = function () {
         var _this = this;
-        if (this.canDeactivateChecks.length === 0 && this.canActivateChecks.length === 0) {
+        if (!this.isDeactivating() && !this.isActivating()) {
             return of_1(true);
         }
         var /** @type {?} */ canDeactivate$ = this.runCanDeactivateChecks();
@@ -34005,12 +34167,20 @@ var PreActivation = (function () {
      */
     PreActivation.prototype.resolveData = function () {
         var _this = this;
-        if (this.canActivateChecks.length === 0)
+        if (!this.isActivating())
             return of_1(null);
         var /** @type {?} */ checks$ = from_1(this.canActivateChecks);
         var /** @type {?} */ runningChecks$ = concatMap_2.call(checks$, function (check) { return _this.runResolve(check.route); });
         return reduce_2.call(runningChecks$, function (_, __) { return _; });
     };
+    /**
+     * @return {?}
+     */
+    PreActivation.prototype.isDeactivating = function () { return this.canDeactivateChecks.length !== 0; };
+    /**
+     * @return {?}
+     */
+    PreActivation.prototype.isActivating = function () { return this.canActivateChecks.length !== 0; };
     /**
      * @param {?} futureNode
      * @param {?} currNode
@@ -34042,10 +34212,9 @@ var PreActivation = (function () {
         var /** @type {?} */ context = parentContexts ? parentContexts.getContext(futureNode.value.outlet) : null;
         // reusing the node
         if (curr && future._routeConfig === curr._routeConfig) {
-            if (this.shouldRunGuardsAndResolvers(curr, future, /** @type {?} */ ((future._routeConfig)).runGuardsAndResolvers)) {
+            var /** @type {?} */ shouldRunGuardsAndResolvers = this.shouldRunGuardsAndResolvers(curr, future, /** @type {?} */ ((future._routeConfig)).runGuardsAndResolvers);
+            if (shouldRunGuardsAndResolvers) {
                 this.canActivateChecks.push(new CanActivate(futurePath));
-                var /** @type {?} */ outlet = ((((context)).outlet));
-                this.canDeactivateChecks.push(new CanDeactivate(outlet.component, curr));
             }
             else {
                 // we need to set the data
@@ -34059,6 +34228,10 @@ var PreActivation = (function () {
             }
             else {
                 this.traverseChildRoutes(futureNode, currNode, parentContexts, futurePath);
+            }
+            if (shouldRunGuardsAndResolvers) {
+                var /** @type {?} */ outlet = ((((context)).outlet));
+                this.canDeactivateChecks.push(new CanDeactivate(outlet.component, curr));
             }
         }
         else {
@@ -34243,11 +34416,35 @@ var PreActivation = (function () {
      */
     PreActivation.prototype.resolveNode = function (resolve, future) {
         var _this = this;
-        return waitForMap(resolve, function (k, v) {
-            var /** @type {?} */ resolver = _this.getToken(v, future);
-            return resolver.resolve ? wrapIntoObservable(resolver.resolve(future, _this.future)) :
-                wrapIntoObservable(resolver(future, _this.future));
+        var /** @type {?} */ keys = Object.keys(resolve);
+        if (keys.length === 0) {
+            return of_1({});
+        }
+        if (keys.length === 1) {
+            var /** @type {?} */ key_1 = keys[0];
+            return map_2.call(this.getResolver(resolve[key_1], future), function (value) {
+                return _a = {}, _a[key_1] = value, _a;
+                var _a;
+            });
+        }
+        var /** @type {?} */ data = {};
+        var /** @type {?} */ runningResolvers$ = mergeMap_2.call(from_1(keys), function (key) {
+            return map_2.call(_this.getResolver(resolve[key], future), function (value) {
+                data[key] = value;
+                return value;
+            });
         });
+        return map_2.call(last_2.call(runningResolvers$), function () { return data; });
+    };
+    /**
+     * @param {?} injectionToken
+     * @param {?} future
+     * @return {?}
+     */
+    PreActivation.prototype.getResolver = function (injectionToken, future) {
+        var /** @type {?} */ resolver = this.getToken(injectionToken, future);
+        return resolver.resolve ? wrapIntoObservable(resolver.resolve(future, this.future)) :
+            wrapIntoObservable(resolver(future, this.future));
     };
     /**
      * @param {?} token
@@ -34607,7 +34804,7 @@ var RouterLink = (function () {
         this.route = route;
         this.commands = [];
         if (tabIndex == null) {
-            renderer.setElementAttribute(el.nativeElement, 'tabindex', '0');
+            renderer.setAttribute(el.nativeElement, 'tabindex', '0');
         }
     }
     Object.defineProperty(RouterLink.prototype, "routerLink", {
@@ -34681,7 +34878,7 @@ RouterLink.ctorParameters = function () { return [
     { type: Router, },
     { type: ActivatedRoute, },
     { type: undefined, decorators: [{ type: Attribute, args: ['tabindex',] },] },
-    { type: Renderer, },
+    { type: Renderer2, },
     { type: ElementRef, },
 ]; };
 RouterLink.propDecorators = {
@@ -34977,7 +35174,14 @@ var RouterLinkActive = (function () {
         var /** @type {?} */ hasActiveLinks = this.hasActiveLinks();
         // react only when status has changed to prevent unnecessary dom updates
         if (this.active !== hasActiveLinks) {
-            this.classes.forEach(function (c) { return _this.renderer.setElementClass(_this.element.nativeElement, c, hasActiveLinks); });
+            this.classes.forEach(function (c) {
+                if (hasActiveLinks) {
+                    _this.renderer.addClass(_this.element.nativeElement, c);
+                }
+                else {
+                    _this.renderer.removeClass(_this.element.nativeElement, c);
+                }
+            });
             Promise.resolve(hasActiveLinks).then(function (active) { return _this.active = active; });
         }
     };
@@ -35010,7 +35214,7 @@ RouterLinkActive.decorators = [
 RouterLinkActive.ctorParameters = function () { return [
     { type: Router, },
     { type: ElementRef, },
-    { type: Renderer, },
+    { type: Renderer2, },
     { type: ChangeDetectorRef, },
 ]; };
 RouterLinkActive.propDecorators = {
@@ -35937,7 +36141,7 @@ function provideRouterInitializer() {
 /**
  * \@stable
  */
-var VERSION$4 = new Version('4.2.4');
+var VERSION$4 = new Version('4.3.1');
 
 var __extends$28 = (commonjsGlobal && commonjsGlobal.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
@@ -36063,7 +36267,7 @@ var forkJoin = {
 };
 
 /**
- * @license Angular v4.2.4
+ * @license Angular v4.3.1
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -36570,7 +36774,7 @@ var CheckboxControlValueAccessor = (function () {
      * @return {?}
      */
     CheckboxControlValueAccessor.prototype.writeValue = function (value) {
-        this._renderer.setElementProperty(this._elementRef.nativeElement, 'checked', value);
+        this._renderer.setProperty(this._elementRef.nativeElement, 'checked', value);
     };
     /**
      * @param {?} fn
@@ -36587,7 +36791,7 @@ var CheckboxControlValueAccessor = (function () {
      * @return {?}
      */
     CheckboxControlValueAccessor.prototype.setDisabledState = function (isDisabled) {
-        this._renderer.setElementProperty(this._elementRef.nativeElement, 'disabled', isDisabled);
+        this._renderer.setProperty(this._elementRef.nativeElement, 'disabled', isDisabled);
     };
     return CheckboxControlValueAccessor;
 }());
@@ -36602,7 +36806,7 @@ CheckboxControlValueAccessor.decorators = [
  * @nocollapse
  */
 CheckboxControlValueAccessor.ctorParameters = function () { return [
-    { type: Renderer, },
+    { type: Renderer2, },
     { type: ElementRef, },
 ]; };
 /**
@@ -36668,7 +36872,7 @@ var DefaultValueAccessor = (function () {
      */
     DefaultValueAccessor.prototype.writeValue = function (value) {
         var /** @type {?} */ normalizedValue = value == null ? '' : value;
-        this._renderer.setElementProperty(this._elementRef.nativeElement, 'value', normalizedValue);
+        this._renderer.setProperty(this._elementRef.nativeElement, 'value', normalizedValue);
     };
     /**
      * @param {?} fn
@@ -36685,7 +36889,7 @@ var DefaultValueAccessor = (function () {
      * @return {?}
      */
     DefaultValueAccessor.prototype.setDisabledState = function (isDisabled) {
-        this._renderer.setElementProperty(this._elementRef.nativeElement, 'disabled', isDisabled);
+        this._renderer.setProperty(this._elementRef.nativeElement, 'disabled', isDisabled);
     };
     /**
      * @param {?} value
@@ -36729,7 +36933,7 @@ DefaultValueAccessor.decorators = [
  * @nocollapse
  */
 DefaultValueAccessor.ctorParameters = function () { return [
-    { type: Renderer, },
+    { type: Renderer2, },
     { type: ElementRef, },
     { type: undefined, decorators: [{ type: Optional }, { type: Inject, args: [COMPOSITION_BUFFER_MODE,] },] },
 ]; };
@@ -36803,7 +37007,7 @@ var NumberValueAccessor = (function () {
     NumberValueAccessor.prototype.writeValue = function (value) {
         // The value needs to be normalized for IE9, otherwise it is set to 'null' when null
         var /** @type {?} */ normalizedValue = value == null ? '' : value;
-        this._renderer.setElementProperty(this._elementRef.nativeElement, 'value', normalizedValue);
+        this._renderer.setProperty(this._elementRef.nativeElement, 'value', normalizedValue);
     };
     /**
      * @param {?} fn
@@ -36822,7 +37026,7 @@ var NumberValueAccessor = (function () {
      * @return {?}
      */
     NumberValueAccessor.prototype.setDisabledState = function (isDisabled) {
-        this._renderer.setElementProperty(this._elementRef.nativeElement, 'disabled', isDisabled);
+        this._renderer.setProperty(this._elementRef.nativeElement, 'disabled', isDisabled);
     };
     return NumberValueAccessor;
 }());
@@ -36841,7 +37045,7 @@ NumberValueAccessor.decorators = [
  * @nocollapse
  */
 NumberValueAccessor.ctorParameters = function () { return [
-    { type: Renderer, },
+    { type: Renderer2, },
     { type: ElementRef, },
 ]; };
 /**
@@ -37043,7 +37247,7 @@ var RadioControlValueAccessor = (function () {
      */
     RadioControlValueAccessor.prototype.writeValue = function (value) {
         this._state = value === this.value;
-        this._renderer.setElementProperty(this._elementRef.nativeElement, 'checked', this._state);
+        this._renderer.setProperty(this._elementRef.nativeElement, 'checked', this._state);
     };
     /**
      * @param {?} fn
@@ -37072,7 +37276,7 @@ var RadioControlValueAccessor = (function () {
      * @return {?}
      */
     RadioControlValueAccessor.prototype.setDisabledState = function (isDisabled) {
-        this._renderer.setElementProperty(this._elementRef.nativeElement, 'disabled', isDisabled);
+        this._renderer.setProperty(this._elementRef.nativeElement, 'disabled', isDisabled);
     };
     /**
      * @return {?}
@@ -37103,7 +37307,7 @@ RadioControlValueAccessor.decorators = [
  * @nocollapse
  */
 RadioControlValueAccessor.ctorParameters = function () { return [
-    { type: Renderer, },
+    { type: Renderer2, },
     { type: ElementRef, },
     { type: RadioControlRegistry, },
     { type: Injector, },
@@ -37150,7 +37354,7 @@ var RangeValueAccessor = (function () {
      * @return {?}
      */
     RangeValueAccessor.prototype.writeValue = function (value) {
-        this._renderer.setElementProperty(this._elementRef.nativeElement, 'value', parseFloat(value));
+        this._renderer.setProperty(this._elementRef.nativeElement, 'value', parseFloat(value));
     };
     /**
      * @param {?} fn
@@ -37169,7 +37373,7 @@ var RangeValueAccessor = (function () {
      * @return {?}
      */
     RangeValueAccessor.prototype.setDisabledState = function (isDisabled) {
-        this._renderer.setElementProperty(this._elementRef.nativeElement, 'disabled', isDisabled);
+        this._renderer.setProperty(this._elementRef.nativeElement, 'disabled', isDisabled);
     };
     return RangeValueAccessor;
 }());
@@ -37188,7 +37392,7 @@ RangeValueAccessor.decorators = [
  * @nocollapse
  */
 RangeValueAccessor.ctorParameters = function () { return [
-    { type: Renderer, },
+    { type: Renderer2, },
     { type: ElementRef, },
 ]; };
 /**
@@ -37327,10 +37531,10 @@ var SelectControlValueAccessor = (function () {
         this.value = value;
         var /** @type {?} */ id = this._getOptionId(value);
         if (id == null) {
-            this._renderer.setElementProperty(this._elementRef.nativeElement, 'selectedIndex', -1);
+            this._renderer.setProperty(this._elementRef.nativeElement, 'selectedIndex', -1);
         }
         var /** @type {?} */ valueString = _buildValueString(id, value);
-        this._renderer.setElementProperty(this._elementRef.nativeElement, 'value', valueString);
+        this._renderer.setProperty(this._elementRef.nativeElement, 'value', valueString);
     };
     /**
      * @param {?} fn
@@ -37353,7 +37557,7 @@ var SelectControlValueAccessor = (function () {
      * @return {?}
      */
     SelectControlValueAccessor.prototype.setDisabledState = function (isDisabled) {
-        this._renderer.setElementProperty(this._elementRef.nativeElement, 'disabled', isDisabled);
+        this._renderer.setProperty(this._elementRef.nativeElement, 'disabled', isDisabled);
     };
     /**
      * \@internal
@@ -37395,7 +37599,7 @@ SelectControlValueAccessor.decorators = [
  * @nocollapse
  */
 SelectControlValueAccessor.ctorParameters = function () { return [
-    { type: Renderer, },
+    { type: Renderer2, },
     { type: ElementRef, },
 ]; };
 SelectControlValueAccessor.propDecorators = {
@@ -37457,7 +37661,7 @@ var NgSelectOption = (function () {
      * @return {?}
      */
     NgSelectOption.prototype._setElementValue = function (value) {
-        this._renderer.setElementProperty(this._element.nativeElement, 'value', value);
+        this._renderer.setProperty(this._element.nativeElement, 'value', value);
     };
     /**
      * @return {?}
@@ -37478,7 +37682,7 @@ NgSelectOption.decorators = [
  */
 NgSelectOption.ctorParameters = function () { return [
     { type: ElementRef, },
-    { type: Renderer, },
+    { type: Renderer2, },
     { type: SelectControlValueAccessor, decorators: [{ type: Optional }, { type: Host },] },
 ]; };
 NgSelectOption.propDecorators = {
@@ -37640,7 +37844,7 @@ var SelectMultipleControlValueAccessor = (function () {
      * @return {?}
      */
     SelectMultipleControlValueAccessor.prototype.setDisabledState = function (isDisabled) {
-        this._renderer.setElementProperty(this._elementRef.nativeElement, 'disabled', isDisabled);
+        this._renderer.setProperty(this._elementRef.nativeElement, 'disabled', isDisabled);
     };
     /**
      * \@internal
@@ -37687,7 +37891,7 @@ SelectMultipleControlValueAccessor.decorators = [
  * @nocollapse
  */
 SelectMultipleControlValueAccessor.ctorParameters = function () { return [
-    { type: Renderer, },
+    { type: Renderer2, },
     { type: ElementRef, },
 ]; };
 SelectMultipleControlValueAccessor.propDecorators = {
@@ -37757,7 +37961,7 @@ var NgSelectMultipleOption = (function () {
      * @return {?}
      */
     NgSelectMultipleOption.prototype._setElementValue = function (value) {
-        this._renderer.setElementProperty(this._element.nativeElement, 'value', value);
+        this._renderer.setProperty(this._element.nativeElement, 'value', value);
     };
     /**
      * \@internal
@@ -37765,7 +37969,7 @@ var NgSelectMultipleOption = (function () {
      * @return {?}
      */
     NgSelectMultipleOption.prototype._setSelected = function (selected) {
-        this._renderer.setElementProperty(this._element.nativeElement, 'selected', selected);
+        this._renderer.setProperty(this._element.nativeElement, 'selected', selected);
     };
     /**
      * @return {?}
@@ -37786,7 +37990,7 @@ NgSelectMultipleOption.decorators = [
  */
 NgSelectMultipleOption.ctorParameters = function () { return [
     { type: ElementRef, },
-    { type: Renderer, },
+    { type: Renderer2, },
     { type: SelectMultipleControlValueAccessor, decorators: [{ type: Optional }, { type: Host },] },
 ]; };
 NgSelectMultipleOption.propDecorators = {
@@ -41907,7 +42111,7 @@ FormBuilder.ctorParameters = function () { return []; };
 /**
  * \@stable
  */
-var VERSION$5 = new Version('4.2.4');
+var VERSION$5 = new Version('4.3.1');
 /**
  * @license
  * Copyright Google Inc. All Rights Reserved.
@@ -42046,7 +42250,7 @@ var common_1 = ( common_es5 && undefined ) || common_es5;
 
 var index = createCommonjsModule(function (module, exports) {
 /**
- * angular2-data-table v"9.3.0" (https://github.com/swimlane/angular2-data-table)
+ * angular2-data-table v"9.3.1" (https://github.com/swimlane/angular2-data-table)
  * Copyright 2016
  * Licensed under MIT
  */
@@ -42087,9 +42291,6 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/ 	// expose the module cache
 /******/ 	__webpack_require__.c = installedModules;
-/******/
-/******/ 	// identity function for calling harmony imports with the correct context
-/******/ 	__webpack_require__.i = function(value) { return value; };
 /******/
 /******/ 	// define getter function for harmony exports
 /******/ 	__webpack_require__.d = function(exports, name, getter) {
@@ -42162,22 +42363,22 @@ function placeHoldersCount (b64) {
 
 function byteLength (b64) {
   // base64 is 4/3 + up to two characters of the original data
-  return b64.length * 3 / 4 - placeHoldersCount(b64)
+  return (b64.length * 3 / 4) - placeHoldersCount(b64)
 }
 
 function toByteArray (b64) {
-  var i, j, l, tmp, placeHolders, arr;
+  var i, l, tmp, placeHolders, arr;
   var len = b64.length;
   placeHolders = placeHoldersCount(b64);
 
-  arr = new Arr(len * 3 / 4 - placeHolders);
+  arr = new Arr((len * 3 / 4) - placeHolders);
 
   // if there are placeholders, only get up to the last complete 4 chars
   l = placeHolders > 0 ? len - 4 : len;
 
   var L = 0;
 
-  for (i = 0, j = 0; i < l; i += 4, j += 3) {
+  for (i = 0; i < l; i += 4) {
     tmp = (revLookup[b64.charCodeAt(i)] << 18) | (revLookup[b64.charCodeAt(i + 1)] << 12) | (revLookup[b64.charCodeAt(i + 2)] << 6) | revLookup[b64.charCodeAt(i + 3)];
     arr[L++] = (tmp >> 16) & 0xFF;
     arr[L++] = (tmp >> 8) & 0xFF;
@@ -44328,6 +44529,120 @@ var Observable = (function () {
         observable.operator = operator;
         return observable;
     };
+    /**
+     * Invokes an execution of an Observable and registers Observer handlers for notifications it will emit.
+     *
+     * <span class="informal">Use it when you have all these Observables, but still nothing is happening.</span>
+     *
+     * `subscribe` is not a regular operator, but a method that calls Observables internal `subscribe` function. It
+     * might be for example a function that you passed to a {@link create} static factory, but most of the time it is
+     * a library implementation, which defines what and when will be emitted by an Observable. This means that calling
+     * `subscribe` is actually the moment when Observable starts its work, not when it is created, as it is often
+     * thought.
+     *
+     * Apart from starting the execution of an Observable, this method allows you to listen for values
+     * that an Observable emits, as well as for when it completes or errors. You can achieve this in two
+     * following ways.
+     *
+     * The first way is creating an object that implements {@link Observer} interface. It should have methods
+     * defined by that interface, but note that it should be just a regular JavaScript object, which you can create
+     * yourself in any way you want (ES6 class, classic function constructor, object literal etc.). In particular do
+     * not attempt to use any RxJS implementation details to create Observers - you don't need them. Remember also
+     * that your object does not have to implement all methods. If you find yourself creating a method that doesn't
+     * do anything, you can simply omit it. Note however, that if `error` method is not provided, all errors will
+     * be left uncaught.
+     *
+     * The second way is to give up on Observer object altogether and simply provide callback functions in place of its methods.
+     * This means you can provide three functions as arguments to `subscribe`, where first function is equivalent
+     * of a `next` method, second of an `error` method and third of a `complete` method. Just as in case of Observer,
+     * if you do not need to listen for something, you can omit a function, preferably by passing `undefined` or `null`,
+     * since `subscribe` recognizes these functions by where they were placed in function call. When it comes
+     * to `error` function, just as before, if not provided, errors emitted by an Observable will be thrown.
+     *
+     * Whatever style of calling `subscribe` you use, in both cases it returns a Subscription object.
+     * This object allows you to call `unsubscribe` on it, which in turn will stop work that an Observable does and will clean
+     * up all resources that an Observable used. Note that cancelling a subscription will not call `complete` callback
+     * provided to `subscribe` function, which is reserved for a regular completion signal that comes from an Observable.
+     *
+     * Remember that callbacks provided to `subscribe` are not guaranteed to be called asynchronously.
+     * It is an Observable itself that decides when these functions will be called. For example {@link of}
+     * by default emits all its values synchronously. Always check documentation for how given Observable
+     * will behave when subscribed and if its default behavior can be modified with a {@link Scheduler}.
+     *
+     * @example <caption>Subscribe with an Observer</caption>
+     * const sumObserver = {
+     *   sum: 0,
+     *   next(value) {
+     *     console.log('Adding: ' + value);
+     *     this.sum = this.sum + value;
+     *   },
+     *   error() { // We actually could just remote this method,
+     *   },        // since we do not really care about errors right now.
+     *   complete() {
+     *     console.log('Sum equals: ' + this.sum);
+     *   }
+     * };
+     *
+     * Rx.Observable.of(1, 2, 3) // Synchronously emits 1, 2, 3 and then completes.
+     * .subscribe(sumObserver);
+     *
+     * // Logs:
+     * // "Adding: 1"
+     * // "Adding: 2"
+     * // "Adding: 3"
+     * // "Sum equals: 6"
+     *
+     *
+     * @example <caption>Subscribe with functions</caption>
+     * let sum = 0;
+     *
+     * Rx.Observable.of(1, 2, 3)
+     * .subscribe(
+     *   function(value) {
+     *     console.log('Adding: ' + value);
+     *     sum = sum + value;
+     *   },
+     *   undefined,
+     *   function() {
+     *     console.log('Sum equals: ' + sum);
+     *   }
+     * );
+     *
+     * // Logs:
+     * // "Adding: 1"
+     * // "Adding: 2"
+     * // "Adding: 3"
+     * // "Sum equals: 6"
+     *
+     *
+     * @example <caption>Cancel a subscription</caption>
+     * const subscription = Rx.Observable.interval(1000).subscribe(
+     *   num => console.log(num),
+     *   undefined,
+     *   () => console.log('completed!') // Will not be called, even
+     * );                                // when cancelling subscription
+     *
+     *
+     * setTimeout(() => {
+     *   subscription.unsubscribe();
+     *   console.log('unsubscribed!');
+     * }, 2500);
+     *
+     * // Logs:
+     * // 0 after 1s
+     * // 1 after 2s
+     * // "unsubscribed!" after 2,5s
+     *
+     *
+     * @param {Observer|Function} observerOrNext (optional) Either an observer with methods to be called,
+     *  or the first of three possible handlers, which is the handler for each value emitted from the subscribed
+     *  Observable.
+     * @param {Function} error (optional) A handler for a terminal event resulting from an error. If no error handler is provided,
+     *  the error will be thrown as unhandled.
+     * @param {Function} complete (optional) A handler for a terminal event resulting from successful completion.
+     * @return {ISubscription} a subscription reference to the registered handlers
+     * @method subscribe
+     */
     Observable.prototype.subscribe = function (observerOrNext, error, complete) {
         var operator = this.operator;
         var sink = toSubscriber_1.toSubscriber(observerOrNext, error, complete);
@@ -44335,7 +44650,7 @@ var Observable = (function () {
             operator.call(sink, this.source);
         }
         else {
-            sink.add(this._trySubscribe(sink));
+            sink.add(this.source ? this._subscribe(sink) : this._trySubscribe(sink));
         }
         if (sink.syncErrorThrowable) {
             sink.syncErrorThrowable = false;
@@ -45794,92 +46109,92 @@ var DataTableBodyCellComponent = (function () {
         if (sort)
             return sort.dir;
     };
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableBodyCellComponent.prototype, "row", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableBodyCellComponent.prototype, "column", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableBodyCellComponent.prototype, "rowHeight", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableBodyCellComponent.prototype, "isSelected", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Array),
+        __metadata("design:paramtypes", [Array])
+    ], DataTableBodyCellComponent.prototype, "sorts", null);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableBodyCellComponent.prototype, "activate", void 0);
+    __decorate([
+        core_1$$1.ViewChild('cellTemplate', { read: core_1$$1.ViewContainerRef }),
+        __metadata("design:type", core_1$$1.ViewContainerRef)
+    ], DataTableBodyCellComponent.prototype, "cellTemplate", void 0);
+    __decorate([
+        core_1$$1.HostBinding('class'),
+        __metadata("design:type", Object),
+        __metadata("design:paramtypes", [])
+    ], DataTableBodyCellComponent.prototype, "columnCssClasses", null);
+    __decorate([
+        core_1$$1.HostBinding('style.width.px'),
+        __metadata("design:type", Number),
+        __metadata("design:paramtypes", [])
+    ], DataTableBodyCellComponent.prototype, "width", null);
+    __decorate([
+        core_1$$1.HostBinding('style.height'),
+        __metadata("design:type", Object),
+        __metadata("design:paramtypes", [])
+    ], DataTableBodyCellComponent.prototype, "height", null);
+    __decorate([
+        core_1$$1.HostListener('focus'),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", []),
+        __metadata("design:returntype", void 0)
+    ], DataTableBodyCellComponent.prototype, "onFocus", null);
+    __decorate([
+        core_1$$1.HostListener('blur'),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", []),
+        __metadata("design:returntype", void 0)
+    ], DataTableBodyCellComponent.prototype, "onBlur", null);
+    __decorate([
+        core_1$$1.HostListener('click', ['$event']),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", [Object]),
+        __metadata("design:returntype", void 0)
+    ], DataTableBodyCellComponent.prototype, "onClick", null);
+    __decorate([
+        core_1$$1.HostListener('dblclick', ['$event']),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", [Object]),
+        __metadata("design:returntype", void 0)
+    ], DataTableBodyCellComponent.prototype, "onDblClick", null);
+    __decorate([
+        core_1$$1.HostListener('keydown', ['$event']),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", [Object]),
+        __metadata("design:returntype", void 0)
+    ], DataTableBodyCellComponent.prototype, "onKeyDown", null);
+    DataTableBodyCellComponent = __decorate([
+        core_1$$1.Component({
+            selector: 'datatable-body-cell',
+            template: "\n    <div class=\"datatable-body-cell-label\">\n      <label\n        *ngIf=\"column.checkboxable\" \n        class=\"datatable-checkbox\">\n        <input \n          type=\"checkbox\"\n          [checked]=\"isSelected\"\n          (click)=\"onCheckboxChange($event)\" \n        />\n      </label>\n      <span\n        *ngIf=\"!column.cellTemplate\"\n        [title]=\"value\"\n        [innerHTML]=\"value\">\n      </span>\n      <ng-template #cellTemplate\n        *ngIf=\"column.cellTemplate\"\n        [ngTemplateOutlet]=\"column.cellTemplate\"\n        [ngOutletContext]=\"{\n          value: value,\n          row: row,\n          column: column,\n          isSelected: isSelected,\n          onCheckboxChangeFn: onCheckboxChangeFn,\n          activateFn: activateFn\n        }\">\n      </ng-template>\n    </div>\n  ",
+            host: {
+                class: 'datatable-body-cell'
+            }
+        }),
+        __metadata("design:paramtypes", [core_1$$1.ElementRef])
+    ], DataTableBodyCellComponent);
     return DataTableBodyCellComponent;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableBodyCellComponent.prototype, "row", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableBodyCellComponent.prototype, "column", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableBodyCellComponent.prototype, "rowHeight", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableBodyCellComponent.prototype, "isSelected", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Array),
-    __metadata("design:paramtypes", [Array])
-], DataTableBodyCellComponent.prototype, "sorts", null);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableBodyCellComponent.prototype, "activate", void 0);
-__decorate([
-    core_1$$1.ViewChild('cellTemplate', { read: core_1$$1.ViewContainerRef }),
-    __metadata("design:type", core_1$$1.ViewContainerRef)
-], DataTableBodyCellComponent.prototype, "cellTemplate", void 0);
-__decorate([
-    core_1$$1.HostBinding('class'),
-    __metadata("design:type", Object),
-    __metadata("design:paramtypes", [])
-], DataTableBodyCellComponent.prototype, "columnCssClasses", null);
-__decorate([
-    core_1$$1.HostBinding('style.width.px'),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [])
-], DataTableBodyCellComponent.prototype, "width", null);
-__decorate([
-    core_1$$1.HostBinding('style.height'),
-    __metadata("design:type", Object),
-    __metadata("design:paramtypes", [])
-], DataTableBodyCellComponent.prototype, "height", null);
-__decorate([
-    core_1$$1.HostListener('focus'),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], DataTableBodyCellComponent.prototype, "onFocus", null);
-__decorate([
-    core_1$$1.HostListener('blur'),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], DataTableBodyCellComponent.prototype, "onBlur", null);
-__decorate([
-    core_1$$1.HostListener('click', ['$event']),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
-], DataTableBodyCellComponent.prototype, "onClick", null);
-__decorate([
-    core_1$$1.HostListener('dblclick', ['$event']),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
-], DataTableBodyCellComponent.prototype, "onDblClick", null);
-__decorate([
-    core_1$$1.HostListener('keydown', ['$event']),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
-], DataTableBodyCellComponent.prototype, "onKeyDown", null);
-DataTableBodyCellComponent = __decorate([
-    core_1$$1.Component({
-        selector: 'datatable-body-cell',
-        template: "\n    <div class=\"datatable-body-cell-label\">\n      <label\n        *ngIf=\"column.checkboxable\" \n        class=\"datatable-checkbox\">\n        <input \n          type=\"checkbox\"\n          [checked]=\"isSelected\"\n          (click)=\"onCheckboxChange($event)\" \n        />\n      </label>\n      <span\n        *ngIf=\"!column.cellTemplate\"\n        [title]=\"value\"\n        [innerHTML]=\"value\">\n      </span>\n      <ng-template #cellTemplate\n        *ngIf=\"column.cellTemplate\"\n        [ngTemplateOutlet]=\"column.cellTemplate\"\n        [ngOutletContext]=\"{\n          value: value,\n          row: row,\n          column: column,\n          isSelected: isSelected,\n          onCheckboxChangeFn: onCheckboxChangeFn,\n          activateFn: activateFn\n        }\">\n      </ng-template>\n    </div>\n  ",
-        host: {
-            class: 'datatable-body-cell'
-        }
-    }),
-    __metadata("design:paramtypes", [core_1$$1.ElementRef])
-], DataTableBodyCellComponent);
 exports.DataTableBodyCellComponent = DataTableBodyCellComponent;
 
 
@@ -45910,43 +46225,43 @@ var DataTableRowWrapperComponent = (function () {
     DataTableRowWrapperComponent.prototype.onContextmenu = function ($event) {
         this.rowContextmenu.emit({ event: $event, row: this.row });
     };
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableRowWrapperComponent.prototype, "rowDetail", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableRowWrapperComponent.prototype, "detailRowHeight", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableRowWrapperComponent.prototype, "expanded", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableRowWrapperComponent.prototype, "row", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", Object)
+    ], DataTableRowWrapperComponent.prototype, "rowContextmenu", void 0);
+    __decorate([
+        core_1$$1.HostListener('contextmenu', ['$event']),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", [Object]),
+        __metadata("design:returntype", void 0)
+    ], DataTableRowWrapperComponent.prototype, "onContextmenu", null);
+    DataTableRowWrapperComponent = __decorate([
+        core_1$$1.Component({
+            selector: 'datatable-row-wrapper',
+            template: "\n    <ng-content></ng-content>\n    <div \n      *ngIf=\"expanded\"\n      [style.height.px]=\"detailRowHeight\" \n      class=\"datatable-row-detail\">\n      <ng-template\n        *ngIf=\"rowDetail && rowDetail.template\"\n        [ngTemplateOutlet]=\"rowDetail.template\"\n        [ngOutletContext]=\"{ row: row }\">\n      </ng-template>\n    </div>\n  ",
+            host: {
+                class: 'datatable-row-wrapper'
+            }
+        })
+    ], DataTableRowWrapperComponent);
     return DataTableRowWrapperComponent;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableRowWrapperComponent.prototype, "rowDetail", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableRowWrapperComponent.prototype, "detailRowHeight", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableRowWrapperComponent.prototype, "expanded", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableRowWrapperComponent.prototype, "row", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", Object)
-], DataTableRowWrapperComponent.prototype, "rowContextmenu", void 0);
-__decorate([
-    core_1$$1.HostListener('contextmenu', ['$event']),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
-], DataTableRowWrapperComponent.prototype, "onContextmenu", null);
-DataTableRowWrapperComponent = __decorate([
-    core_1$$1.Component({
-        selector: 'datatable-row-wrapper',
-        template: "\n    <ng-content></ng-content>\n    <div \n      *ngIf=\"expanded\"\n      [style.height.px]=\"detailRowHeight\" \n      class=\"datatable-row-detail\">\n      <ng-template\n        *ngIf=\"rowDetail && rowDetail.template\"\n        [ngTemplateOutlet]=\"rowDetail.template\"\n        [ngOutletContext]=\"{ row: row }\">\n      </ng-template>\n    </div>\n  ",
-        host: {
-            class: 'datatable-row-wrapper'
-        }
-    })
-], DataTableRowWrapperComponent);
 exports.DataTableRowWrapperComponent = DataTableRowWrapperComponent;
 
 
@@ -46088,66 +46403,66 @@ var DataTableBodyRowComponent = (function () {
         this.columnsByPin = utils_1.columnsByPinArr(val);
         this.columnGroupWidths = utils_1.columnGroupWidths(colsByPin, val);
     };
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Array),
+        __metadata("design:paramtypes", [Array])
+    ], DataTableBodyRowComponent.prototype, "columns", null);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number),
+        __metadata("design:paramtypes", [Number])
+    ], DataTableBodyRowComponent.prototype, "innerWidth", null);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableBodyRowComponent.prototype, "rowClass", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableBodyRowComponent.prototype, "row", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableBodyRowComponent.prototype, "offsetX", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableBodyRowComponent.prototype, "isSelected", void 0);
+    __decorate([
+        core_1$$1.HostBinding('class'),
+        __metadata("design:type", Object),
+        __metadata("design:paramtypes", [])
+    ], DataTableBodyRowComponent.prototype, "cssClass", null);
+    __decorate([
+        core_1$$1.HostBinding('style.height.px'),
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableBodyRowComponent.prototype, "rowHeight", void 0);
+    __decorate([
+        core_1$$1.HostBinding('style.width.px'),
+        __metadata("design:type", String),
+        __metadata("design:paramtypes", [])
+    ], DataTableBodyRowComponent.prototype, "columnsTotalWidths", null);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableBodyRowComponent.prototype, "activate", void 0);
+    __decorate([
+        core_1$$1.HostListener('keydown', ['$event']),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", [Object]),
+        __metadata("design:returntype", void 0)
+    ], DataTableBodyRowComponent.prototype, "onKeyDown", null);
+    DataTableBodyRowComponent = __decorate([
+        core_1$$1.Component({
+            selector: 'datatable-body-row',
+            template: "\n    <div\n      *ngFor=\"let colGroup of columnsByPin; let i = index; trackBy: trackByGroups\"\n      class=\"datatable-row-{{colGroup.type}} datatable-row-group\"\n      [ngStyle]=\"stylesByGroup(colGroup.type)\">\n      <datatable-body-cell\n        *ngFor=\"let column of colGroup.columns; let ii = index; trackBy: columnTrackingFn\"\n        tabindex=\"-1\"\n        [row]=\"row\"\n        [isSelected]=\"isSelected\"\n        [column]=\"column\"\n        [rowHeight]=\"rowHeight\"\n        (activate)=\"onActivate($event, ii)\">\n      </datatable-body-cell>\n    </div>\n  "
+        }),
+        __metadata("design:paramtypes", [services_1.ScrollbarHelper, core_1$$1.ElementRef])
+    ], DataTableBodyRowComponent);
     return DataTableBodyRowComponent;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Array),
-    __metadata("design:paramtypes", [Array])
-], DataTableBodyRowComponent.prototype, "columns", null);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [Number])
-], DataTableBodyRowComponent.prototype, "innerWidth", null);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableBodyRowComponent.prototype, "rowClass", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableBodyRowComponent.prototype, "row", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableBodyRowComponent.prototype, "offsetX", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableBodyRowComponent.prototype, "isSelected", void 0);
-__decorate([
-    core_1$$1.HostBinding('class'),
-    __metadata("design:type", Object),
-    __metadata("design:paramtypes", [])
-], DataTableBodyRowComponent.prototype, "cssClass", null);
-__decorate([
-    core_1$$1.HostBinding('style.height.px'),
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableBodyRowComponent.prototype, "rowHeight", void 0);
-__decorate([
-    core_1$$1.HostBinding('style.width.px'),
-    __metadata("design:type", String),
-    __metadata("design:paramtypes", [])
-], DataTableBodyRowComponent.prototype, "columnsTotalWidths", null);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableBodyRowComponent.prototype, "activate", void 0);
-__decorate([
-    core_1$$1.HostListener('keydown', ['$event']),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
-], DataTableBodyRowComponent.prototype, "onKeyDown", null);
-DataTableBodyRowComponent = __decorate([
-    core_1$$1.Component({
-        selector: 'datatable-body-row',
-        template: "\n    <div\n      *ngFor=\"let colGroup of columnsByPin; let i = index; trackBy: trackByGroups\"\n      class=\"datatable-row-{{colGroup.type}} datatable-row-group\"\n      [ngStyle]=\"stylesByGroup(colGroup.type)\">\n      <datatable-body-cell\n        *ngFor=\"let column of colGroup.columns; let ii = index; trackBy: columnTrackingFn\"\n        tabindex=\"-1\"\n        [row]=\"row\"\n        [isSelected]=\"isSelected\"\n        [column]=\"column\"\n        [rowHeight]=\"rowHeight\"\n        (activate)=\"onActivate($event, ii)\">\n      </datatable-body-cell>\n    </div>\n  "
-    }),
-    __metadata("design:paramtypes", [services_1.ScrollbarHelper, core_1$$1.ElementRef])
-], DataTableBodyRowComponent);
 exports.DataTableBodyRowComponent = DataTableBodyRowComponent;
 
 
@@ -46649,142 +46964,142 @@ var DataTableBodyComponent = (function () {
         this.updateIndexes();
         this.updateRows();
     };
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableBodyComponent.prototype, "scrollbarV", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableBodyComponent.prototype, "scrollbarH", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableBodyComponent.prototype, "loadingIndicator", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableBodyComponent.prototype, "externalPaging", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableBodyComponent.prototype, "rowHeight", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableBodyComponent.prototype, "offsetX", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DataTableBodyComponent.prototype, "emptyMessage", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableBodyComponent.prototype, "selectionType", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Array)
+    ], DataTableBodyComponent.prototype, "selected", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableBodyComponent.prototype, "rowIdentity", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableBodyComponent.prototype, "rowDetail", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableBodyComponent.prototype, "selectCheck", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DataTableBodyComponent.prototype, "trackByProp", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableBodyComponent.prototype, "rowClass", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number),
+        __metadata("design:paramtypes", [Number])
+    ], DataTableBodyComponent.prototype, "pageSize", null);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Array),
+        __metadata("design:paramtypes", [Array])
+    ], DataTableBodyComponent.prototype, "rows", null);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Array),
+        __metadata("design:paramtypes", [Array])
+    ], DataTableBodyComponent.prototype, "columns", null);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number),
+        __metadata("design:paramtypes", [Number])
+    ], DataTableBodyComponent.prototype, "offset", null);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number),
+        __metadata("design:paramtypes", [Number])
+    ], DataTableBodyComponent.prototype, "rowCount", null);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableBodyComponent.prototype, "innerWidth", void 0);
+    __decorate([
+        core_1$$1.HostBinding('style.width'),
+        __metadata("design:type", String),
+        __metadata("design:paramtypes", [])
+    ], DataTableBodyComponent.prototype, "bodyWidth", null);
+    __decorate([
+        core_1$$1.Input(),
+        core_1$$1.HostBinding('style.height'),
+        __metadata("design:type", Object),
+        __metadata("design:paramtypes", [Object])
+    ], DataTableBodyComponent.prototype, "bodyHeight", null);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableBodyComponent.prototype, "scroll", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableBodyComponent.prototype, "page", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableBodyComponent.prototype, "activate", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableBodyComponent.prototype, "select", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableBodyComponent.prototype, "detailToggle", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", Object)
+    ], DataTableBodyComponent.prototype, "rowContextmenu", void 0);
+    __decorate([
+        core_1$$1.ViewChild(scroller_component_1.ScrollerComponent),
+        __metadata("design:type", scroller_component_1.ScrollerComponent)
+    ], DataTableBodyComponent.prototype, "scroller", void 0);
+    DataTableBodyComponent = __decorate([
+        core_1$$1.Component({
+            selector: 'datatable-body',
+            template: "\n    <datatable-selection\n      #selector\n      [selected]=\"selected\"\n      [rows]=\"temp\"\n      [selectCheck]=\"selectCheck\"\n      [selectEnabled]=\"selectEnabled\"\n      [selectionType]=\"selectionType\"\n      [rowIdentity]=\"rowIdentity\"\n      (select)=\"select.emit($event)\"\n      (activate)=\"activate.emit($event)\">\n      <datatable-progress\n        *ngIf=\"loadingIndicator\">\n      </datatable-progress>\n      <datatable-scroller\n        *ngIf=\"rows?.length\"\n        [scrollbarV]=\"scrollbarV\"\n        [scrollbarH]=\"scrollbarH\"\n        [scrollHeight]=\"scrollHeight\"\n        [scrollWidth]=\"columnGroupWidths.total\"\n        (scroll)=\"onBodyScroll($event)\">\n        <datatable-row-wrapper\n          *ngFor=\"let row of temp; let i = index; trackBy: rowTrackingFn;\"\n          [ngStyle]=\"getRowsStyles(row)\"\n          [rowDetail]=\"rowDetail\"\n          [detailRowHeight]=\"getDetailRowHeight(row,i)\"\n          [row]=\"row\"\n          [expanded]=\"row.$$expanded === 1\"\n          (rowContextmenu)=\"rowContextmenu.emit($event)\">\n          <datatable-body-row\n            tabindex=\"-1\"\n            [isSelected]=\"selector.getRowSelected(row)\"\n            [innerWidth]=\"innerWidth\"\n            [offsetX]=\"offsetX\"\n            [columns]=\"columns\"\n            [rowHeight]=\"getRowHeight(row)\"\n            [row]=\"row\"\n            [rowClass]=\"rowClass\"\n            (activate)=\"selector.onActivate($event, i)\">\n          </datatable-body-row>\n        </datatable-row-wrapper>\n      </datatable-scroller>\n      <div\n        class=\"empty-row\"\n        *ngIf=\"!rows?.length\"\n        [innerHTML]=\"emptyMessage\">\n      </div>\n    </datatable-selection>\n  ",
+            host: {
+                class: 'datatable-body'
+            }
+        }),
+        __metadata("design:paramtypes", [])
+    ], DataTableBodyComponent);
     return DataTableBodyComponent;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableBodyComponent.prototype, "scrollbarV", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableBodyComponent.prototype, "scrollbarH", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableBodyComponent.prototype, "loadingIndicator", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableBodyComponent.prototype, "externalPaging", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableBodyComponent.prototype, "rowHeight", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableBodyComponent.prototype, "offsetX", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DataTableBodyComponent.prototype, "emptyMessage", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableBodyComponent.prototype, "selectionType", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Array)
-], DataTableBodyComponent.prototype, "selected", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableBodyComponent.prototype, "rowIdentity", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableBodyComponent.prototype, "rowDetail", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableBodyComponent.prototype, "selectCheck", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DataTableBodyComponent.prototype, "trackByProp", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableBodyComponent.prototype, "rowClass", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [Number])
-], DataTableBodyComponent.prototype, "pageSize", null);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Array),
-    __metadata("design:paramtypes", [Array])
-], DataTableBodyComponent.prototype, "rows", null);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Array),
-    __metadata("design:paramtypes", [Array])
-], DataTableBodyComponent.prototype, "columns", null);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [Number])
-], DataTableBodyComponent.prototype, "offset", null);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [Number])
-], DataTableBodyComponent.prototype, "rowCount", null);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableBodyComponent.prototype, "innerWidth", void 0);
-__decorate([
-    core_1$$1.HostBinding('style.width'),
-    __metadata("design:type", String),
-    __metadata("design:paramtypes", [])
-], DataTableBodyComponent.prototype, "bodyWidth", null);
-__decorate([
-    core_1$$1.Input(),
-    core_1$$1.HostBinding('style.height'),
-    __metadata("design:type", Object),
-    __metadata("design:paramtypes", [Object])
-], DataTableBodyComponent.prototype, "bodyHeight", null);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableBodyComponent.prototype, "scroll", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableBodyComponent.prototype, "page", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableBodyComponent.prototype, "activate", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableBodyComponent.prototype, "select", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableBodyComponent.prototype, "detailToggle", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", Object)
-], DataTableBodyComponent.prototype, "rowContextmenu", void 0);
-__decorate([
-    core_1$$1.ViewChild(scroller_component_1.ScrollerComponent),
-    __metadata("design:type", scroller_component_1.ScrollerComponent)
-], DataTableBodyComponent.prototype, "scroller", void 0);
-DataTableBodyComponent = __decorate([
-    core_1$$1.Component({
-        selector: 'datatable-body',
-        template: "\n    <datatable-selection\n      #selector\n      [selected]=\"selected\"\n      [rows]=\"temp\"\n      [selectCheck]=\"selectCheck\"\n      [selectEnabled]=\"selectEnabled\"\n      [selectionType]=\"selectionType\"\n      [rowIdentity]=\"rowIdentity\"\n      (select)=\"select.emit($event)\"\n      (activate)=\"activate.emit($event)\">\n      <datatable-progress\n        *ngIf=\"loadingIndicator\">\n      </datatable-progress>\n      <datatable-scroller\n        *ngIf=\"rows?.length\"\n        [scrollbarV]=\"scrollbarV\"\n        [scrollbarH]=\"scrollbarH\"\n        [scrollHeight]=\"scrollHeight\"\n        [scrollWidth]=\"columnGroupWidths.total\"\n        (scroll)=\"onBodyScroll($event)\">\n        <datatable-row-wrapper\n          *ngFor=\"let row of temp; let i = index; trackBy: rowTrackingFn;\"\n          [ngStyle]=\"getRowsStyles(row)\"\n          [rowDetail]=\"rowDetail\"\n          [detailRowHeight]=\"getDetailRowHeight(row,i)\"\n          [row]=\"row\"\n          [expanded]=\"row.$$expanded === 1\"\n          (rowContextmenu)=\"rowContextmenu.emit($event)\">\n          <datatable-body-row\n            tabindex=\"-1\"\n            [isSelected]=\"selector.getRowSelected(row)\"\n            [innerWidth]=\"innerWidth\"\n            [offsetX]=\"offsetX\"\n            [columns]=\"columns\"\n            [rowHeight]=\"getRowHeight(row)\"\n            [row]=\"row\"\n            [rowClass]=\"rowClass\"\n            (activate)=\"selector.onActivate($event, i)\">\n          </datatable-body-row>\n        </datatable-row-wrapper>\n      </datatable-scroller>\n      <div\n        class=\"empty-row\"\n        *ngIf=\"!rows?.length\"\n        [innerHTML]=\"emptyMessage\">\n      </div>\n    </datatable-selection>\n  ",
-        host: {
-            class: 'datatable-body'
-        }
-    }),
-    __metadata("design:paramtypes", [])
-], DataTableBodyComponent);
 exports.DataTableBodyComponent = DataTableBodyComponent;
 
 
@@ -46826,15 +47141,15 @@ var core_1$$1 = __webpack_require__(0);
 var ProgressBarComponent = (function () {
     function ProgressBarComponent() {
     }
+    ProgressBarComponent = __decorate([
+        core_1$$1.Component({
+            selector: 'datatable-progress',
+            template: "\n    <div class=\"progress-linear\" role=\"progressbar\">\n      <div class=\"container\">\n        <div class=\"bar\"></div>\n      </div>\n    </div>\n  ",
+            changeDetection: core_1$$1.ChangeDetectionStrategy.OnPush
+        })
+    ], ProgressBarComponent);
     return ProgressBarComponent;
 }());
-ProgressBarComponent = __decorate([
-    core_1$$1.Component({
-        selector: 'datatable-progress',
-        template: "\n    <div class=\"progress-linear\" role=\"progressbar\">\n      <div class=\"container\">\n        <div class=\"bar\"></div>\n      </div>\n    </div>\n  ",
-        changeDetection: core_1$$1.ChangeDetectionStrategy.OnPush
-    })
-], ProgressBarComponent);
 exports.ProgressBarComponent = ProgressBarComponent;
 
 
@@ -46907,40 +47222,40 @@ var ScrollerComponent = (function () {
         this.prevScrollYPos = this.scrollYPos;
         this.prevScrollXPos = this.scrollXPos;
     };
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], ScrollerComponent.prototype, "scrollbarV", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], ScrollerComponent.prototype, "scrollbarH", void 0);
+    __decorate([
+        core_1$$1.HostBinding('style.height.px'),
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], ScrollerComponent.prototype, "scrollHeight", void 0);
+    __decorate([
+        core_1$$1.HostBinding('style.width.px'),
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], ScrollerComponent.prototype, "scrollWidth", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], ScrollerComponent.prototype, "scroll", void 0);
+    ScrollerComponent = __decorate([
+        core_1$$1.Component({
+            selector: 'datatable-scroller',
+            template: "\n    <ng-content></ng-content>\n  ",
+            host: {
+                class: 'datatable-scroll'
+            }
+        }),
+        __metadata("design:paramtypes", [core_1$$1.ElementRef, core_1$$1.Renderer])
+    ], ScrollerComponent);
     return ScrollerComponent;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], ScrollerComponent.prototype, "scrollbarV", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], ScrollerComponent.prototype, "scrollbarH", void 0);
-__decorate([
-    core_1$$1.HostBinding('style.height.px'),
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], ScrollerComponent.prototype, "scrollHeight", void 0);
-__decorate([
-    core_1$$1.HostBinding('style.width.px'),
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], ScrollerComponent.prototype, "scrollWidth", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], ScrollerComponent.prototype, "scroll", void 0);
-ScrollerComponent = __decorate([
-    core_1$$1.Component({
-        selector: 'datatable-scroller',
-        template: "\n    <ng-content></ng-content>\n  ",
-        host: {
-            class: 'datatable-scroll'
-        }
-    }),
-    __metadata("design:paramtypes", [core_1$$1.ElementRef, core_1$$1.Renderer])
-], ScrollerComponent);
 exports.ScrollerComponent = ScrollerComponent;
 
 
@@ -47087,46 +47402,46 @@ var DataTableSelectionComponent = (function () {
             return id === rowId;
         });
     };
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Array)
+    ], DataTableSelectionComponent.prototype, "rows", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Array)
+    ], DataTableSelectionComponent.prototype, "selected", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableSelectionComponent.prototype, "selectEnabled", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableSelectionComponent.prototype, "selectionType", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableSelectionComponent.prototype, "rowIdentity", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableSelectionComponent.prototype, "selectCheck", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableSelectionComponent.prototype, "activate", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableSelectionComponent.prototype, "select", void 0);
+    DataTableSelectionComponent = __decorate([
+        core_1$$1.Component({
+            selector: 'datatable-selection',
+            template: "\n    <ng-content></ng-content>\n  "
+        })
+    ], DataTableSelectionComponent);
     return DataTableSelectionComponent;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Array)
-], DataTableSelectionComponent.prototype, "rows", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Array)
-], DataTableSelectionComponent.prototype, "selected", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableSelectionComponent.prototype, "selectEnabled", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableSelectionComponent.prototype, "selectionType", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableSelectionComponent.prototype, "rowIdentity", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableSelectionComponent.prototype, "selectCheck", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableSelectionComponent.prototype, "activate", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableSelectionComponent.prototype, "select", void 0);
-DataTableSelectionComponent = __decorate([
-    core_1$$1.Component({
-        selector: 'datatable-selection',
-        template: "\n    <ng-content></ng-content>\n  "
-    })
-], DataTableSelectionComponent);
 exports.DataTableSelectionComponent = DataTableSelectionComponent;
 
 
@@ -47152,12 +47467,12 @@ var DataTableColumnCellDirective = (function () {
     function DataTableColumnCellDirective(template) {
         this.template = template;
     }
+    DataTableColumnCellDirective = __decorate([
+        core_1$$1.Directive({ selector: '[ngx-datatable-cell-template]' }),
+        __metadata("design:paramtypes", [core_1$$1.TemplateRef])
+    ], DataTableColumnCellDirective);
     return DataTableColumnCellDirective;
 }());
-DataTableColumnCellDirective = __decorate([
-    core_1$$1.Directive({ selector: '[ngx-datatable-cell-template]' }),
-    __metadata("design:paramtypes", [core_1$$1.TemplateRef])
-], DataTableColumnCellDirective);
 exports.DataTableColumnCellDirective = DataTableColumnCellDirective;
 
 
@@ -47183,12 +47498,12 @@ var DataTableColumnHeaderDirective = (function () {
     function DataTableColumnHeaderDirective(template) {
         this.template = template;
     }
+    DataTableColumnHeaderDirective = __decorate([
+        core_1$$1.Directive({ selector: '[ngx-datatable-header-template]' }),
+        __metadata("design:paramtypes", [core_1$$1.TemplateRef])
+    ], DataTableColumnHeaderDirective);
     return DataTableColumnHeaderDirective;
 }());
-DataTableColumnHeaderDirective = __decorate([
-    core_1$$1.Directive({ selector: '[ngx-datatable-header-template]' }),
-    __metadata("design:paramtypes", [core_1$$1.TemplateRef])
-], DataTableColumnHeaderDirective);
 exports.DataTableColumnHeaderDirective = DataTableColumnHeaderDirective;
 
 
@@ -47215,93 +47530,93 @@ var column_cell_directive_1 = __webpack_require__("./src/components/columns/colu
 var DataTableColumnDirective = (function () {
     function DataTableColumnDirective() {
     }
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DataTableColumnDirective.prototype, "name", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableColumnDirective.prototype, "prop", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableColumnDirective.prototype, "frozenLeft", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableColumnDirective.prototype, "frozenRight", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableColumnDirective.prototype, "flexGrow", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableColumnDirective.prototype, "resizeable", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableColumnDirective.prototype, "comparator", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableColumnDirective.prototype, "pipe", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableColumnDirective.prototype, "sortable", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableColumnDirective.prototype, "draggable", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableColumnDirective.prototype, "canAutoResize", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableColumnDirective.prototype, "minWidth", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableColumnDirective.prototype, "width", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableColumnDirective.prototype, "maxWidth", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableColumnDirective.prototype, "checkboxable", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableColumnDirective.prototype, "headerCheckboxable", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableColumnDirective.prototype, "headerClass", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableColumnDirective.prototype, "cellClass", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        core_1$$1.ContentChild(column_cell_directive_1.DataTableColumnCellDirective, { read: core_1$$1.TemplateRef }),
+        __metadata("design:type", core_1$$1.TemplateRef)
+    ], DataTableColumnDirective.prototype, "cellTemplate", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        core_1$$1.ContentChild(column_header_directive_1.DataTableColumnHeaderDirective, { read: core_1$$1.TemplateRef }),
+        __metadata("design:type", core_1$$1.TemplateRef)
+    ], DataTableColumnDirective.prototype, "headerTemplate", void 0);
+    DataTableColumnDirective = __decorate([
+        core_1$$1.Directive({ selector: 'ngx-datatable-column' })
+    ], DataTableColumnDirective);
     return DataTableColumnDirective;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DataTableColumnDirective.prototype, "name", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableColumnDirective.prototype, "prop", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableColumnDirective.prototype, "frozenLeft", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableColumnDirective.prototype, "frozenRight", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableColumnDirective.prototype, "flexGrow", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableColumnDirective.prototype, "resizeable", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableColumnDirective.prototype, "comparator", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableColumnDirective.prototype, "pipe", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableColumnDirective.prototype, "sortable", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableColumnDirective.prototype, "draggable", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableColumnDirective.prototype, "canAutoResize", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableColumnDirective.prototype, "minWidth", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableColumnDirective.prototype, "width", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableColumnDirective.prototype, "maxWidth", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableColumnDirective.prototype, "checkboxable", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableColumnDirective.prototype, "headerCheckboxable", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableColumnDirective.prototype, "headerClass", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableColumnDirective.prototype, "cellClass", void 0);
-__decorate([
-    core_1$$1.Input(),
-    core_1$$1.ContentChild(column_cell_directive_1.DataTableColumnCellDirective, { read: core_1$$1.TemplateRef }),
-    __metadata("design:type", core_1$$1.TemplateRef)
-], DataTableColumnDirective.prototype, "cellTemplate", void 0);
-__decorate([
-    core_1$$1.Input(),
-    core_1$$1.ContentChild(column_header_directive_1.DataTableColumnHeaderDirective, { read: core_1$$1.TemplateRef }),
-    __metadata("design:type", core_1$$1.TemplateRef)
-], DataTableColumnDirective.prototype, "headerTemplate", void 0);
-DataTableColumnDirective = __decorate([
-    core_1$$1.Directive({ selector: 'ngx-datatable-column' })
-], DataTableColumnDirective);
 exports.DataTableColumnDirective = DataTableColumnDirective;
 
 
@@ -48220,231 +48535,231 @@ var DatatableComponent = (function () {
     DatatableComponent.prototype.onBodySelect = function (event) {
         this.select.emit(event);
     };
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object),
+        __metadata("design:paramtypes", [Object])
+    ], DatatableComponent.prototype, "rows", null);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Array),
+        __metadata("design:paramtypes", [Array])
+    ], DatatableComponent.prototype, "columns", null);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Array)
+    ], DatatableComponent.prototype, "selected", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DatatableComponent.prototype, "scrollbarV", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DatatableComponent.prototype, "scrollbarH", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DatatableComponent.prototype, "rowHeight", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DatatableComponent.prototype, "columnMode", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DatatableComponent.prototype, "headerHeight", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DatatableComponent.prototype, "footerHeight", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DatatableComponent.prototype, "externalPaging", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DatatableComponent.prototype, "externalSorting", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DatatableComponent.prototype, "limit", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number),
+        __metadata("design:paramtypes", [Number])
+    ], DatatableComponent.prototype, "count", null);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DatatableComponent.prototype, "offset", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DatatableComponent.prototype, "loadingIndicator", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DatatableComponent.prototype, "selectionType", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DatatableComponent.prototype, "reorderable", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DatatableComponent.prototype, "sortType", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Array)
+    ], DatatableComponent.prototype, "sorts", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DatatableComponent.prototype, "cssClasses", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DatatableComponent.prototype, "messages", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Function)
+    ], DatatableComponent.prototype, "rowIdentity", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DatatableComponent.prototype, "rowClass", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DatatableComponent.prototype, "selectCheck", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DatatableComponent.prototype, "trackByProp", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DatatableComponent.prototype, "scroll", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DatatableComponent.prototype, "activate", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DatatableComponent.prototype, "select", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DatatableComponent.prototype, "sort", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DatatableComponent.prototype, "page", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DatatableComponent.prototype, "reorder", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DatatableComponent.prototype, "resize", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", Object)
+    ], DatatableComponent.prototype, "tableContextmenu", void 0);
+    __decorate([
+        core_1$$1.HostBinding('class.fixed-header'),
+        __metadata("design:type", Boolean),
+        __metadata("design:paramtypes", [])
+    ], DatatableComponent.prototype, "isFixedHeader", null);
+    __decorate([
+        core_1$$1.HostBinding('class.fixed-row'),
+        __metadata("design:type", Boolean),
+        __metadata("design:paramtypes", [])
+    ], DatatableComponent.prototype, "isFixedRow", null);
+    __decorate([
+        core_1$$1.HostBinding('class.scroll-vertical'),
+        __metadata("design:type", Boolean),
+        __metadata("design:paramtypes", [])
+    ], DatatableComponent.prototype, "isVertScroll", null);
+    __decorate([
+        core_1$$1.HostBinding('class.scroll-horz'),
+        __metadata("design:type", Boolean),
+        __metadata("design:paramtypes", [])
+    ], DatatableComponent.prototype, "isHorScroll", null);
+    __decorate([
+        core_1$$1.HostBinding('class.selectable'),
+        __metadata("design:type", Boolean),
+        __metadata("design:paramtypes", [])
+    ], DatatableComponent.prototype, "isSelectable", null);
+    __decorate([
+        core_1$$1.HostBinding('class.checkbox-selection'),
+        __metadata("design:type", Boolean),
+        __metadata("design:paramtypes", [])
+    ], DatatableComponent.prototype, "isCheckboxSelection", null);
+    __decorate([
+        core_1$$1.HostBinding('class.cell-selection'),
+        __metadata("design:type", Boolean),
+        __metadata("design:paramtypes", [])
+    ], DatatableComponent.prototype, "isCellSelection", null);
+    __decorate([
+        core_1$$1.HostBinding('class.single-selection'),
+        __metadata("design:type", Boolean),
+        __metadata("design:paramtypes", [])
+    ], DatatableComponent.prototype, "isSingleSelection", null);
+    __decorate([
+        core_1$$1.HostBinding('class.multi-selection'),
+        __metadata("design:type", Boolean),
+        __metadata("design:paramtypes", [])
+    ], DatatableComponent.prototype, "isMultiSelection", null);
+    __decorate([
+        core_1$$1.HostBinding('class.multi-click-selection'),
+        __metadata("design:type", Boolean),
+        __metadata("design:paramtypes", [])
+    ], DatatableComponent.prototype, "isMultiClickSelection", null);
+    __decorate([
+        core_1$$1.ContentChildren(columns_1.DataTableColumnDirective),
+        __metadata("design:type", core_1$$1.QueryList),
+        __metadata("design:paramtypes", [core_1$$1.QueryList])
+    ], DatatableComponent.prototype, "columnTemplates", null);
+    __decorate([
+        core_1$$1.ContentChild(row_detail_1.DatatableRowDetailDirective),
+        __metadata("design:type", row_detail_1.DatatableRowDetailDirective)
+    ], DatatableComponent.prototype, "rowDetail", void 0);
+    __decorate([
+        core_1$$1.ContentChild(footer_1.DatatableFooterDirective),
+        __metadata("design:type", footer_1.DatatableFooterDirective)
+    ], DatatableComponent.prototype, "footer", void 0);
+    __decorate([
+        core_1$$1.ViewChild(body_1.DataTableBodyComponent),
+        __metadata("design:type", body_1.DataTableBodyComponent)
+    ], DatatableComponent.prototype, "bodyComponent", void 0);
+    __decorate([
+        core_1$$1.HostListener('window:resize'),
+        utils_1.throttleable(5),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", []),
+        __metadata("design:returntype", void 0)
+    ], DatatableComponent.prototype, "onWindowResize", null);
+    DatatableComponent = __decorate([
+        core_1$$1.Component({
+            selector: 'ngx-datatable',
+            template: "\n    <div\n      visibilityObserver\n      (visible)=\"recalculate()\">\n      <datatable-header\n        *ngIf=\"headerHeight\"\n        [sorts]=\"sorts\"\n        [sortType]=\"sortType\"\n        [scrollbarH]=\"scrollbarH\"\n        [innerWidth]=\"innerWidth\"\n        [offsetX]=\"offsetX\"\n        [columns]=\"columns\"\n        [headerHeight]=\"headerHeight\"\n        [reorderable]=\"reorderable\"\n        [sortAscendingIcon]=\"cssClasses.sortAscending\"\n        [sortDescendingIcon]=\"cssClasses.sortDescending\"\n        [allRowsSelected]=\"allRowsSelected\"\n        [selectionType]=\"selectionType\"\n        (sort)=\"onColumnSort($event)\"\n        (resize)=\"onColumnResize($event)\"\n        (reorder)=\"onColumnReorder($event)\"\n        (select)=\"onHeaderSelect($event)\"\n        (columnContextmenu)=\"onColumnContextmenu($event)\">\n      </datatable-header>\n      <datatable-body\n        [rows]=\"rows\"\n        [scrollbarV]=\"scrollbarV\"\n        [scrollbarH]=\"scrollbarH\"\n        [loadingIndicator]=\"loadingIndicator\"\n        [externalPaging]=\"externalPaging\"\n        [rowHeight]=\"rowHeight\"\n        [rowCount]=\"rowCount\"\n        [offset]=\"offset\"\n        [trackByProp]=\"trackByProp\"\n        [columns]=\"columns\"\n        [pageSize]=\"pageSize\"\n        [offsetX]=\"offsetX\"\n        [rowDetail]=\"rowDetail\"\n        [selected]=\"selected\"\n        [innerWidth]=\"innerWidth\"\n        [bodyHeight]=\"bodyHeight\"\n        [selectionType]=\"selectionType\"\n        [emptyMessage]=\"messages.emptyMessage\"\n        [rowIdentity]=\"rowIdentity\"\n        [rowClass]=\"rowClass\"\n        [selectCheck]=\"selectCheck\"\n        (page)=\"onBodyPage($event)\"\n        (activate)=\"activate.emit($event)\"\n        (rowContextmenu)=\"onRowContextmenu($event)\"\n        (select)=\"onBodySelect($event)\"\n        (scroll)=\"onBodyScroll($event)\">\n      </datatable-body>\n      <datatable-footer\n        *ngIf=\"footerHeight\"\n        [rowCount]=\"rowCount\"\n        [pageSize]=\"pageSize\"\n        [offset]=\"offset\"\n        [footerHeight]=\"footerHeight\"\n        [footerTemplate]=\"footer\"\n        [totalMessage]=\"messages.totalMessage\"\n        [pagerLeftArrowIcon]=\"cssClasses.pagerLeftArrow\"\n        [pagerRightArrowIcon]=\"cssClasses.pagerRightArrow\"\n        [pagerPreviousIcon]=\"cssClasses.pagerPrevious\"\n        [selectedCount]=\"selected.length\"\n        [selectedMessage]=\"!!selectionType && messages.selectedMessage\"\n        [pagerNextIcon]=\"cssClasses.pagerNext\"\n        (page)=\"onFooterPage($event)\">\n      </datatable-footer>\n    </div>\n  ",
+            encapsulation: core_1$$1.ViewEncapsulation.None,
+            styles: [__webpack_require__("./src/components/datatable.component.scss")],
+            host: {
+                class: 'ngx-datatable'
+            }
+        }),
+        __metadata("design:paramtypes", [services_1.ScrollbarHelper,
+            core_1$$1.ElementRef,
+            core_1$$1.KeyValueDiffers])
+    ], DatatableComponent);
     return DatatableComponent;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object),
-    __metadata("design:paramtypes", [Object])
-], DatatableComponent.prototype, "rows", null);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Array),
-    __metadata("design:paramtypes", [Array])
-], DatatableComponent.prototype, "columns", null);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Array)
-], DatatableComponent.prototype, "selected", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DatatableComponent.prototype, "scrollbarV", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DatatableComponent.prototype, "scrollbarH", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DatatableComponent.prototype, "rowHeight", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DatatableComponent.prototype, "columnMode", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DatatableComponent.prototype, "headerHeight", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DatatableComponent.prototype, "footerHeight", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DatatableComponent.prototype, "externalPaging", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DatatableComponent.prototype, "externalSorting", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DatatableComponent.prototype, "limit", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [Number])
-], DatatableComponent.prototype, "count", null);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DatatableComponent.prototype, "offset", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DatatableComponent.prototype, "loadingIndicator", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DatatableComponent.prototype, "selectionType", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DatatableComponent.prototype, "reorderable", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DatatableComponent.prototype, "sortType", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Array)
-], DatatableComponent.prototype, "sorts", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DatatableComponent.prototype, "cssClasses", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DatatableComponent.prototype, "messages", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Function)
-], DatatableComponent.prototype, "rowIdentity", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DatatableComponent.prototype, "rowClass", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DatatableComponent.prototype, "selectCheck", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DatatableComponent.prototype, "trackByProp", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DatatableComponent.prototype, "scroll", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DatatableComponent.prototype, "activate", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DatatableComponent.prototype, "select", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DatatableComponent.prototype, "sort", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DatatableComponent.prototype, "page", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DatatableComponent.prototype, "reorder", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DatatableComponent.prototype, "resize", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", Object)
-], DatatableComponent.prototype, "tableContextmenu", void 0);
-__decorate([
-    core_1$$1.HostBinding('class.fixed-header'),
-    __metadata("design:type", Boolean),
-    __metadata("design:paramtypes", [])
-], DatatableComponent.prototype, "isFixedHeader", null);
-__decorate([
-    core_1$$1.HostBinding('class.fixed-row'),
-    __metadata("design:type", Boolean),
-    __metadata("design:paramtypes", [])
-], DatatableComponent.prototype, "isFixedRow", null);
-__decorate([
-    core_1$$1.HostBinding('class.scroll-vertical'),
-    __metadata("design:type", Boolean),
-    __metadata("design:paramtypes", [])
-], DatatableComponent.prototype, "isVertScroll", null);
-__decorate([
-    core_1$$1.HostBinding('class.scroll-horz'),
-    __metadata("design:type", Boolean),
-    __metadata("design:paramtypes", [])
-], DatatableComponent.prototype, "isHorScroll", null);
-__decorate([
-    core_1$$1.HostBinding('class.selectable'),
-    __metadata("design:type", Boolean),
-    __metadata("design:paramtypes", [])
-], DatatableComponent.prototype, "isSelectable", null);
-__decorate([
-    core_1$$1.HostBinding('class.checkbox-selection'),
-    __metadata("design:type", Boolean),
-    __metadata("design:paramtypes", [])
-], DatatableComponent.prototype, "isCheckboxSelection", null);
-__decorate([
-    core_1$$1.HostBinding('class.cell-selection'),
-    __metadata("design:type", Boolean),
-    __metadata("design:paramtypes", [])
-], DatatableComponent.prototype, "isCellSelection", null);
-__decorate([
-    core_1$$1.HostBinding('class.single-selection'),
-    __metadata("design:type", Boolean),
-    __metadata("design:paramtypes", [])
-], DatatableComponent.prototype, "isSingleSelection", null);
-__decorate([
-    core_1$$1.HostBinding('class.multi-selection'),
-    __metadata("design:type", Boolean),
-    __metadata("design:paramtypes", [])
-], DatatableComponent.prototype, "isMultiSelection", null);
-__decorate([
-    core_1$$1.HostBinding('class.multi-click-selection'),
-    __metadata("design:type", Boolean),
-    __metadata("design:paramtypes", [])
-], DatatableComponent.prototype, "isMultiClickSelection", null);
-__decorate([
-    core_1$$1.ContentChildren(columns_1.DataTableColumnDirective),
-    __metadata("design:type", core_1$$1.QueryList),
-    __metadata("design:paramtypes", [core_1$$1.QueryList])
-], DatatableComponent.prototype, "columnTemplates", null);
-__decorate([
-    core_1$$1.ContentChild(row_detail_1.DatatableRowDetailDirective),
-    __metadata("design:type", row_detail_1.DatatableRowDetailDirective)
-], DatatableComponent.prototype, "rowDetail", void 0);
-__decorate([
-    core_1$$1.ContentChild(footer_1.DatatableFooterDirective),
-    __metadata("design:type", footer_1.DatatableFooterDirective)
-], DatatableComponent.prototype, "footer", void 0);
-__decorate([
-    core_1$$1.ViewChild(body_1.DataTableBodyComponent),
-    __metadata("design:type", body_1.DataTableBodyComponent)
-], DatatableComponent.prototype, "bodyComponent", void 0);
-__decorate([
-    core_1$$1.HostListener('window:resize'),
-    utils_1.throttleable(5),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], DatatableComponent.prototype, "onWindowResize", null);
-DatatableComponent = __decorate([
-    core_1$$1.Component({
-        selector: 'ngx-datatable',
-        template: "\n    <div\n      visibilityObserver\n      (visible)=\"recalculate()\">\n      <datatable-header\n        *ngIf=\"headerHeight\"\n        [sorts]=\"sorts\"\n        [sortType]=\"sortType\"\n        [scrollbarH]=\"scrollbarH\"\n        [innerWidth]=\"innerWidth\"\n        [offsetX]=\"offsetX\"\n        [columns]=\"columns\"\n        [headerHeight]=\"headerHeight\"\n        [reorderable]=\"reorderable\"\n        [sortAscendingIcon]=\"cssClasses.sortAscending\"\n        [sortDescendingIcon]=\"cssClasses.sortDescending\"\n        [allRowsSelected]=\"allRowsSelected\"\n        [selectionType]=\"selectionType\"\n        (sort)=\"onColumnSort($event)\"\n        (resize)=\"onColumnResize($event)\"\n        (reorder)=\"onColumnReorder($event)\"\n        (select)=\"onHeaderSelect($event)\"\n        (columnContextmenu)=\"onColumnContextmenu($event)\">\n      </datatable-header>\n      <datatable-body\n        [rows]=\"rows\"\n        [scrollbarV]=\"scrollbarV\"\n        [scrollbarH]=\"scrollbarH\"\n        [loadingIndicator]=\"loadingIndicator\"\n        [externalPaging]=\"externalPaging\"\n        [rowHeight]=\"rowHeight\"\n        [rowCount]=\"rowCount\"\n        [offset]=\"offset\"\n        [trackByProp]=\"trackByProp\"\n        [columns]=\"columns\"\n        [pageSize]=\"pageSize\"\n        [offsetX]=\"offsetX\"\n        [rowDetail]=\"rowDetail\"\n        [selected]=\"selected\"\n        [innerWidth]=\"innerWidth\"\n        [bodyHeight]=\"bodyHeight\"\n        [selectionType]=\"selectionType\"\n        [emptyMessage]=\"messages.emptyMessage\"\n        [rowIdentity]=\"rowIdentity\"\n        [rowClass]=\"rowClass\"\n        [selectCheck]=\"selectCheck\"\n        (page)=\"onBodyPage($event)\"\n        (activate)=\"activate.emit($event)\"\n        (rowContextmenu)=\"onRowContextmenu($event)\"\n        (select)=\"onBodySelect($event)\"\n        (scroll)=\"onBodyScroll($event)\">\n      </datatable-body>\n      <datatable-footer\n        *ngIf=\"footerHeight\"\n        [rowCount]=\"rowCount\"\n        [pageSize]=\"pageSize\"\n        [offset]=\"offset\"\n        [footerHeight]=\"footerHeight\"\n        [footerTemplate]=\"footer\"\n        [totalMessage]=\"messages.totalMessage\"\n        [pagerLeftArrowIcon]=\"cssClasses.pagerLeftArrow\"\n        [pagerRightArrowIcon]=\"cssClasses.pagerRightArrow\"\n        [pagerPreviousIcon]=\"cssClasses.pagerPrevious\"\n        [selectedCount]=\"selected.length\"\n        [selectedMessage]=\"!!selectionType && messages.selectedMessage\"\n        [pagerNextIcon]=\"cssClasses.pagerNext\"\n        (page)=\"onFooterPage($event)\">\n      </datatable-footer>\n    </div>\n  ",
-        encapsulation: core_1$$1.ViewEncapsulation.None,
-        styles: [__webpack_require__("./src/components/datatable.component.scss")],
-        host: {
-            class: 'ngx-datatable'
-        }
-    }),
-    __metadata("design:paramtypes", [services_1.ScrollbarHelper,
-        core_1$$1.ElementRef,
-        core_1$$1.KeyValueDiffers])
-], DatatableComponent);
 exports.DatatableComponent = DatatableComponent;
 
 
@@ -48470,12 +48785,12 @@ var DataTableFooterTemplateDirective = (function () {
     function DataTableFooterTemplateDirective(template) {
         this.template = template;
     }
+    DataTableFooterTemplateDirective = __decorate([
+        core_1$$1.Directive({ selector: '[ngx-datatable-footer-template]' }),
+        __metadata("design:paramtypes", [core_1$$1.TemplateRef])
+    ], DataTableFooterTemplateDirective);
     return DataTableFooterTemplateDirective;
 }());
-DataTableFooterTemplateDirective = __decorate([
-    core_1$$1.Directive({ selector: '[ngx-datatable-footer-template]' }),
-    __metadata("design:paramtypes", [core_1$$1.TemplateRef])
-], DataTableFooterTemplateDirective);
 exports.DataTableFooterTemplateDirective = DataTableFooterTemplateDirective;
 
 
@@ -48516,70 +48831,70 @@ var DataTableFooterComponent = (function () {
         enumerable: true,
         configurable: true
     });
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableFooterComponent.prototype, "footerHeight", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableFooterComponent.prototype, "rowCount", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableFooterComponent.prototype, "pageSize", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableFooterComponent.prototype, "offset", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DataTableFooterComponent.prototype, "pagerLeftArrowIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DataTableFooterComponent.prototype, "pagerRightArrowIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DataTableFooterComponent.prototype, "pagerPreviousIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DataTableFooterComponent.prototype, "pagerNextIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DataTableFooterComponent.prototype, "totalMessage", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", core_1$$1.TemplateRef)
+    ], DataTableFooterComponent.prototype, "footerTemplate", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableFooterComponent.prototype, "selectedCount", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableFooterComponent.prototype, "selectedMessage", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableFooterComponent.prototype, "page", void 0);
+    DataTableFooterComponent = __decorate([
+        core_1$$1.Component({
+            selector: 'datatable-footer',
+            template: "\n    <div\n      class=\"datatable-footer-inner\"\n      [ngClass]=\"{'selected-count': selectedMessage}\"\n      [style.height.px]=\"footerHeight\">\n      <ng-template\n        *ngIf=\"footerTemplate\"\n        [ngTemplateOutlet]=\"footerTemplate.template\"\n        [ngOutletContext]=\"{ \n          rowCount: rowCount, \n          pageSize: pageSize, \n          selectedCount: selectedCount,\n          curPage: curPage,\n          offset: offset\n        }\">\n      </ng-template>\n      <div class=\"page-count\" *ngIf=\"!footerTemplate\">\n        <span *ngIf=\"selectedMessage\">\n          {{selectedCount.toLocaleString()}} {{selectedMessage}} / \n        </span>\n        {{rowCount.toLocaleString()}} {{totalMessage}}\n      </div>\n      <datatable-pager *ngIf=\"!footerTemplate\"\n        [pagerLeftArrowIcon]=\"pagerLeftArrowIcon\"\n        [pagerRightArrowIcon]=\"pagerRightArrowIcon\"\n        [pagerPreviousIcon]=\"pagerPreviousIcon\"\n        [pagerNextIcon]=\"pagerNextIcon\"\n        [page]=\"curPage\"\n        [size]=\"pageSize\"\n        [count]=\"rowCount\"\n        [hidden]=\"!isVisible\"\n        (change)=\"page.emit($event)\">\n      </datatable-pager>\n    </div>\n  ",
+            host: {
+                class: 'datatable-footer'
+            },
+            changeDetection: core_1$$1.ChangeDetectionStrategy.OnPush
+        })
+    ], DataTableFooterComponent);
     return DataTableFooterComponent;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableFooterComponent.prototype, "footerHeight", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableFooterComponent.prototype, "rowCount", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableFooterComponent.prototype, "pageSize", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableFooterComponent.prototype, "offset", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DataTableFooterComponent.prototype, "pagerLeftArrowIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DataTableFooterComponent.prototype, "pagerRightArrowIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DataTableFooterComponent.prototype, "pagerPreviousIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DataTableFooterComponent.prototype, "pagerNextIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DataTableFooterComponent.prototype, "totalMessage", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", core_1$$1.TemplateRef)
-], DataTableFooterComponent.prototype, "footerTemplate", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableFooterComponent.prototype, "selectedCount", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableFooterComponent.prototype, "selectedMessage", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableFooterComponent.prototype, "page", void 0);
-DataTableFooterComponent = __decorate([
-    core_1$$1.Component({
-        selector: 'datatable-footer',
-        template: "\n    <div\n      class=\"datatable-footer-inner\"\n      [ngClass]=\"{'selected-count': selectedMessage}\"\n      [style.height.px]=\"footerHeight\">\n      <ng-template\n        *ngIf=\"footerTemplate\"\n        [ngTemplateOutlet]=\"footerTemplate.template\"\n        [ngOutletContext]=\"{ \n          rowCount: rowCount, \n          pageSize: pageSize, \n          selectedCount: selectedCount,\n          curPage: curPage,\n          offset: offset\n        }\">\n      </ng-template>\n      <div class=\"page-count\" *ngIf=\"!footerTemplate\">\n        <span *ngIf=\"selectedMessage\">\n          {{selectedCount.toLocaleString()}} {{selectedMessage}} / \n        </span>\n        {{rowCount.toLocaleString()}} {{totalMessage}}\n      </div>\n      <datatable-pager *ngIf=\"!footerTemplate\"\n        [pagerLeftArrowIcon]=\"pagerLeftArrowIcon\"\n        [pagerRightArrowIcon]=\"pagerRightArrowIcon\"\n        [pagerPreviousIcon]=\"pagerPreviousIcon\"\n        [pagerNextIcon]=\"pagerNextIcon\"\n        [page]=\"curPage\"\n        [size]=\"pageSize\"\n        [count]=\"rowCount\"\n        [hidden]=\"!isVisible\"\n        (change)=\"page.emit($event)\">\n      </datatable-pager>\n    </div>\n  ",
-        host: {
-            class: 'datatable-footer'
-        },
-        changeDetection: core_1$$1.ChangeDetectionStrategy.OnPush
-    })
-], DataTableFooterComponent);
 exports.DataTableFooterComponent = DataTableFooterComponent;
 
 
@@ -48605,44 +48920,44 @@ var footer_template_directive_1 = __webpack_require__("./src/components/footer/f
 var DatatableFooterDirective = (function () {
     function DatatableFooterDirective() {
     }
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DatatableFooterDirective.prototype, "footerHeight", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DatatableFooterDirective.prototype, "totalMessage", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DatatableFooterDirective.prototype, "selectedMessage", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DatatableFooterDirective.prototype, "pagerLeftArrowIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DatatableFooterDirective.prototype, "pagerRightArrowIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DatatableFooterDirective.prototype, "pagerPreviousIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DatatableFooterDirective.prototype, "pagerNextIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        core_1$$1.ContentChild(footer_template_directive_1.DataTableFooterTemplateDirective, { read: core_1$$1.TemplateRef }),
+        __metadata("design:type", core_1$$1.TemplateRef)
+    ], DatatableFooterDirective.prototype, "template", void 0);
+    DatatableFooterDirective = __decorate([
+        core_1$$1.Directive({ selector: 'ngx-datatable-footer' })
+    ], DatatableFooterDirective);
     return DatatableFooterDirective;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DatatableFooterDirective.prototype, "footerHeight", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DatatableFooterDirective.prototype, "totalMessage", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DatatableFooterDirective.prototype, "selectedMessage", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DatatableFooterDirective.prototype, "pagerLeftArrowIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DatatableFooterDirective.prototype, "pagerRightArrowIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DatatableFooterDirective.prototype, "pagerPreviousIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DatatableFooterDirective.prototype, "pagerNextIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    core_1$$1.ContentChild(footer_template_directive_1.DataTableFooterTemplateDirective, { read: core_1$$1.TemplateRef }),
-    __metadata("design:type", core_1$$1.TemplateRef)
-], DatatableFooterDirective.prototype, "template", void 0);
-DatatableFooterDirective = __decorate([
-    core_1$$1.Directive({ selector: 'ngx-datatable-footer' })
-], DatatableFooterDirective);
 exports.DatatableFooterDirective = DatatableFooterDirective;
 
 
@@ -48768,53 +49083,53 @@ var DataTablePagerComponent = (function () {
         }
         return pages;
     };
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DataTablePagerComponent.prototype, "pagerLeftArrowIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DataTablePagerComponent.prototype, "pagerRightArrowIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DataTablePagerComponent.prototype, "pagerPreviousIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DataTablePagerComponent.prototype, "pagerNextIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number),
+        __metadata("design:paramtypes", [Number])
+    ], DataTablePagerComponent.prototype, "size", null);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number),
+        __metadata("design:paramtypes", [Number])
+    ], DataTablePagerComponent.prototype, "count", null);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number),
+        __metadata("design:paramtypes", [Number])
+    ], DataTablePagerComponent.prototype, "page", null);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTablePagerComponent.prototype, "change", void 0);
+    DataTablePagerComponent = __decorate([
+        core_1$$1.Component({
+            selector: 'datatable-pager',
+            template: "\n    <ul class=\"pager\">\n      <li [class.disabled]=\"!canPrevious()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"selectPage(1)\">\n          <i class=\"{{pagerPreviousIcon}}\"></i>\n        </a>\n      </li>\n      <li [class.disabled]=\"!canPrevious()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"prevPage()\">\n          <i class=\"{{pagerLeftArrowIcon}}\"></i>\n        </a>\n      </li>\n      <li\n        class=\"pages\"\n        *ngFor=\"let pg of pages\"\n        [class.active]=\"pg.number === page\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"selectPage(pg.number)\">\n          {{pg.text}}\n        </a>\n      </li>\n      <li [class.disabled]=\"!canNext()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"nextPage()\">\n          <i class=\"{{pagerRightArrowIcon}}\"></i>\n        </a>\n      </li>\n      <li [class.disabled]=\"!canNext()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"selectPage(totalPages)\">\n          <i class=\"{{pagerNextIcon}}\"></i>\n        </a>\n      </li>\n    </ul>\n  ",
+            host: {
+                class: 'datatable-pager'
+            },
+            changeDetection: core_1$$1.ChangeDetectionStrategy.OnPush
+        })
+    ], DataTablePagerComponent);
     return DataTablePagerComponent;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DataTablePagerComponent.prototype, "pagerLeftArrowIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DataTablePagerComponent.prototype, "pagerRightArrowIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DataTablePagerComponent.prototype, "pagerPreviousIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DataTablePagerComponent.prototype, "pagerNextIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [Number])
-], DataTablePagerComponent.prototype, "size", null);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [Number])
-], DataTablePagerComponent.prototype, "count", null);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [Number])
-], DataTablePagerComponent.prototype, "page", null);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTablePagerComponent.prototype, "change", void 0);
-DataTablePagerComponent = __decorate([
-    core_1$$1.Component({
-        selector: 'datatable-pager',
-        template: "\n    <ul class=\"pager\">\n      <li [class.disabled]=\"!canPrevious()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"selectPage(1)\">\n          <i class=\"{{pagerPreviousIcon}}\"></i>\n        </a>\n      </li>\n      <li [class.disabled]=\"!canPrevious()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"prevPage()\">\n          <i class=\"{{pagerLeftArrowIcon}}\"></i>\n        </a>\n      </li>\n      <li\n        class=\"pages\"\n        *ngFor=\"let pg of pages\"\n        [class.active]=\"pg.number === page\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"selectPage(pg.number)\">\n          {{pg.text}}\n        </a>\n      </li>\n      <li [class.disabled]=\"!canNext()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"nextPage()\">\n          <i class=\"{{pagerRightArrowIcon}}\"></i>\n        </a>\n      </li>\n      <li [class.disabled]=\"!canNext()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"selectPage(totalPages)\">\n          <i class=\"{{pagerNextIcon}}\"></i>\n        </a>\n      </li>\n    </ul>\n  ",
-        host: {
-            class: 'datatable-pager'
-        },
-        changeDetection: core_1$$1.ChangeDetectionStrategy.OnPush
-    })
-], DataTablePagerComponent);
 exports.DataTablePagerComponent = DataTablePagerComponent;
 
 
@@ -48968,94 +49283,94 @@ var DataTableHeaderCellComponent = (function () {
             return "sort-btn";
         }
     };
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableHeaderCellComponent.prototype, "sortType", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableHeaderCellComponent.prototype, "column", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DataTableHeaderCellComponent.prototype, "sortAscendingIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", String)
+    ], DataTableHeaderCellComponent.prototype, "sortDescendingIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableHeaderCellComponent.prototype, "allRowsSelected", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableHeaderCellComponent.prototype, "selectionType", void 0);
+    __decorate([
+        core_1$$1.HostBinding('style.height.px'),
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableHeaderCellComponent.prototype, "headerHeight", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Array),
+        __metadata("design:paramtypes", [Array])
+    ], DataTableHeaderCellComponent.prototype, "sorts", null);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableHeaderCellComponent.prototype, "sort", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableHeaderCellComponent.prototype, "select", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", Object)
+    ], DataTableHeaderCellComponent.prototype, "columnContextmenu", void 0);
+    __decorate([
+        core_1$$1.HostBinding('class'),
+        __metadata("design:type", Object),
+        __metadata("design:paramtypes", [])
+    ], DataTableHeaderCellComponent.prototype, "columnCssClasses", null);
+    __decorate([
+        core_1$$1.HostBinding('attr.title'),
+        __metadata("design:type", String),
+        __metadata("design:paramtypes", [])
+    ], DataTableHeaderCellComponent.prototype, "name", null);
+    __decorate([
+        core_1$$1.HostBinding('style.minWidth.px'),
+        __metadata("design:type", Number),
+        __metadata("design:paramtypes", [])
+    ], DataTableHeaderCellComponent.prototype, "minWidth", null);
+    __decorate([
+        core_1$$1.HostBinding('style.maxWidth.px'),
+        __metadata("design:type", Number),
+        __metadata("design:paramtypes", [])
+    ], DataTableHeaderCellComponent.prototype, "maxWidth", null);
+    __decorate([
+        core_1$$1.HostBinding('style.width.px'),
+        __metadata("design:type", Number),
+        __metadata("design:paramtypes", [])
+    ], DataTableHeaderCellComponent.prototype, "width", null);
+    __decorate([
+        core_1$$1.HostListener('contextmenu', ['$event']),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", [Object]),
+        __metadata("design:returntype", void 0)
+    ], DataTableHeaderCellComponent.prototype, "onContextmenu", null);
+    DataTableHeaderCellComponent = __decorate([
+        core_1$$1.Component({
+            selector: 'datatable-header-cell',
+            template: "\n    <div>\n      <label\n        *ngIf=\"isCheckboxable\" \n        class=\"datatable-checkbox\">\n        <input \n          type=\"checkbox\"\n          [checked]=\"allRowsSelected\"\n          (change)=\"select.emit(!allRowsSelected)\" \n        />\n      </label>\n      <span \n        *ngIf=\"!column.headerTemplate\"\n        class=\"datatable-header-cell-wrapper\">\n        <span\n          class=\"datatable-header-cell-label draggable\"\n          (click)=\"onSort()\"\n          [innerHTML]=\"name\">\n        </span>\n      </span>\n      <ng-template\n        *ngIf=\"column.headerTemplate\"\n        [ngTemplateOutlet]=\"column.headerTemplate\"\n        [ngOutletContext]=\"{ \n          column: column, \n          sortDir: sortDir,\n          sortFn: sortFn,\n          allRowsSelected: allRowsSelected,\n          selectFn: selectFn\n        }\">\n      </ng-template>\n      <span\n        (click)=\"onSort()\"\n        [class]=\"sortClass\">\n      </span>\n    </div>\n  ",
+            host: {
+                class: 'datatable-header-cell'
+            }
+        })
+    ], DataTableHeaderCellComponent);
     return DataTableHeaderCellComponent;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableHeaderCellComponent.prototype, "sortType", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableHeaderCellComponent.prototype, "column", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DataTableHeaderCellComponent.prototype, "sortAscendingIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", String)
-], DataTableHeaderCellComponent.prototype, "sortDescendingIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableHeaderCellComponent.prototype, "allRowsSelected", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableHeaderCellComponent.prototype, "selectionType", void 0);
-__decorate([
-    core_1$$1.HostBinding('style.height.px'),
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableHeaderCellComponent.prototype, "headerHeight", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Array),
-    __metadata("design:paramtypes", [Array])
-], DataTableHeaderCellComponent.prototype, "sorts", null);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableHeaderCellComponent.prototype, "sort", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableHeaderCellComponent.prototype, "select", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", Object)
-], DataTableHeaderCellComponent.prototype, "columnContextmenu", void 0);
-__decorate([
-    core_1$$1.HostBinding('class'),
-    __metadata("design:type", Object),
-    __metadata("design:paramtypes", [])
-], DataTableHeaderCellComponent.prototype, "columnCssClasses", null);
-__decorate([
-    core_1$$1.HostBinding('attr.title'),
-    __metadata("design:type", String),
-    __metadata("design:paramtypes", [])
-], DataTableHeaderCellComponent.prototype, "name", null);
-__decorate([
-    core_1$$1.HostBinding('style.minWidth.px'),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [])
-], DataTableHeaderCellComponent.prototype, "minWidth", null);
-__decorate([
-    core_1$$1.HostBinding('style.maxWidth.px'),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [])
-], DataTableHeaderCellComponent.prototype, "maxWidth", null);
-__decorate([
-    core_1$$1.HostBinding('style.width.px'),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [])
-], DataTableHeaderCellComponent.prototype, "width", null);
-__decorate([
-    core_1$$1.HostListener('contextmenu', ['$event']),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
-], DataTableHeaderCellComponent.prototype, "onContextmenu", null);
-DataTableHeaderCellComponent = __decorate([
-    core_1$$1.Component({
-        selector: 'datatable-header-cell',
-        template: "\n    <div>\n      <label\n        *ngIf=\"isCheckboxable\" \n        class=\"datatable-checkbox\">\n        <input \n          type=\"checkbox\"\n          [checked]=\"allRowsSelected\"\n          (change)=\"select.emit(!allRowsSelected)\" \n        />\n      </label>\n      <span \n        *ngIf=\"!column.headerTemplate\"\n        class=\"datatable-header-cell-wrapper\">\n        <span\n          class=\"datatable-header-cell-label draggable\"\n          (click)=\"onSort()\"\n          [innerHTML]=\"name\">\n        </span>\n      </span>\n      <ng-template\n        *ngIf=\"column.headerTemplate\"\n        [ngTemplateOutlet]=\"column.headerTemplate\"\n        [ngOutletContext]=\"{ \n          column: column, \n          sortDir: sortDir,\n          sortFn: sortFn,\n          allRowsSelected: allRowsSelected,\n          selectFn: selectFn\n        }\">\n      </ng-template>\n      <span\n        (click)=\"onSort()\"\n        [class]=\"sortClass\">\n      </span>\n    </div>\n  ",
-        host: {
-            class: 'datatable-header-cell'
-        }
-    })
-], DataTableHeaderCellComponent);
 exports.DataTableHeaderCellComponent = DataTableHeaderCellComponent;
 
 
@@ -49228,93 +49543,93 @@ var DataTableHeaderComponent = (function () {
         }
         return styles;
     };
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableHeaderComponent.prototype, "sortAscendingIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DataTableHeaderComponent.prototype, "sortDescendingIcon", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableHeaderComponent.prototype, "scrollbarH", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableHeaderComponent.prototype, "innerWidth", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableHeaderComponent.prototype, "offsetX", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Array)
+    ], DataTableHeaderComponent.prototype, "sorts", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableHeaderComponent.prototype, "sortType", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableHeaderComponent.prototype, "allRowsSelected", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], DataTableHeaderComponent.prototype, "selectionType", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DataTableHeaderComponent.prototype, "reorderable", void 0);
+    __decorate([
+        core_1$$1.HostBinding('style.height'),
+        core_1$$1.Input(),
+        __metadata("design:type", Object),
+        __metadata("design:paramtypes", [Object])
+    ], DataTableHeaderComponent.prototype, "headerHeight", null);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Array),
+        __metadata("design:paramtypes", [Array])
+    ], DataTableHeaderComponent.prototype, "columns", null);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableHeaderComponent.prototype, "sort", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableHeaderComponent.prototype, "reorder", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableHeaderComponent.prototype, "resize", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DataTableHeaderComponent.prototype, "select", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", Object)
+    ], DataTableHeaderComponent.prototype, "columnContextmenu", void 0);
+    __decorate([
+        core_1$$1.HostBinding('style.width'),
+        __metadata("design:type", String),
+        __metadata("design:paramtypes", [])
+    ], DataTableHeaderComponent.prototype, "headerWidth", null);
+    DataTableHeaderComponent = __decorate([
+        core_1$$1.Component({
+            selector: 'datatable-header',
+            template: "\n    <div\n      orderable\n      (reorder)=\"onColumnReordered($event)\"\n      [style.width.px]=\"columnGroupWidths.total\"\n      class=\"datatable-header-inner\">\n      <div\n        *ngFor=\"let colGroup of columnsByPin; trackBy: trackByGroups\"\n        [class]=\"'datatable-row-' + colGroup.type\"\n        [ngStyle]=\"stylesByGroup(colGroup.type)\">\n        <datatable-header-cell\n          *ngFor=\"let column of colGroup.columns; trackBy: columnTrackingFn\"\n          resizeable\n          [resizeEnabled]=\"column.resizeable\"\n          (resize)=\"onColumnResized($event, column)\"\n          long-press\n          [pressModel]=\"column\"\n          [pressEnabled]=\"reorderable && column.draggable\"\n          (longPressStart)=\"onLongPressStart($event)\"\n          (longPressEnd)=\"onLongPressEnd($event)\"\n          draggable\n          [dragX]=\"reorderable && column.draggable && column.dragging\"\n          [dragY]=\"false\"\n          [dragModel]=\"column\"\n          [dragEventTarget]=\"dragEventTarget\"\n          [headerHeight]=\"headerHeight\"\n          [column]=\"column\"\n          [sortType]=\"sortType\"\n          [sorts]=\"sorts\"\n          [selectionType]=\"selectionType\"\n          [sortAscendingIcon]=\"sortAscendingIcon\"\n          [sortDescendingIcon]=\"sortDescendingIcon\"\n          [allRowsSelected]=\"allRowsSelected\"\n          (sort)=\"onSort($event)\"\n          (select)=\"select.emit($event)\"\n          (columnContextmenu)=\"columnContextmenu.emit($event)\">\n        </datatable-header-cell>\n      </div>\n    </div>\n  ",
+            host: {
+                class: 'datatable-header'
+            }
+        })
+    ], DataTableHeaderComponent);
     return DataTableHeaderComponent;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableHeaderComponent.prototype, "sortAscendingIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DataTableHeaderComponent.prototype, "sortDescendingIcon", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableHeaderComponent.prototype, "scrollbarH", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableHeaderComponent.prototype, "innerWidth", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableHeaderComponent.prototype, "offsetX", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Array)
-], DataTableHeaderComponent.prototype, "sorts", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableHeaderComponent.prototype, "sortType", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableHeaderComponent.prototype, "allRowsSelected", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], DataTableHeaderComponent.prototype, "selectionType", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DataTableHeaderComponent.prototype, "reorderable", void 0);
-__decorate([
-    core_1$$1.HostBinding('style.height'),
-    core_1$$1.Input(),
-    __metadata("design:type", Object),
-    __metadata("design:paramtypes", [Object])
-], DataTableHeaderComponent.prototype, "headerHeight", null);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Array),
-    __metadata("design:paramtypes", [Array])
-], DataTableHeaderComponent.prototype, "columns", null);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableHeaderComponent.prototype, "sort", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableHeaderComponent.prototype, "reorder", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableHeaderComponent.prototype, "resize", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DataTableHeaderComponent.prototype, "select", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", Object)
-], DataTableHeaderComponent.prototype, "columnContextmenu", void 0);
-__decorate([
-    core_1$$1.HostBinding('style.width'),
-    __metadata("design:type", String),
-    __metadata("design:paramtypes", [])
-], DataTableHeaderComponent.prototype, "headerWidth", null);
-DataTableHeaderComponent = __decorate([
-    core_1$$1.Component({
-        selector: 'datatable-header',
-        template: "\n    <div\n      orderable\n      (reorder)=\"onColumnReordered($event)\"\n      [style.width.px]=\"columnGroupWidths.total\"\n      class=\"datatable-header-inner\">\n      <div\n        *ngFor=\"let colGroup of columnsByPin; trackBy: trackByGroups\"\n        [class]=\"'datatable-row-' + colGroup.type\"\n        [ngStyle]=\"stylesByGroup(colGroup.type)\">\n        <datatable-header-cell\n          *ngFor=\"let column of colGroup.columns; trackBy: columnTrackingFn\"\n          resizeable\n          [resizeEnabled]=\"column.resizeable\"\n          (resize)=\"onColumnResized($event, column)\"\n          long-press\n          [pressModel]=\"column\"\n          [pressEnabled]=\"reorderable && column.draggable\"\n          (longPressStart)=\"onLongPressStart($event)\"\n          (longPressEnd)=\"onLongPressEnd($event)\"\n          draggable\n          [dragX]=\"reorderable && column.draggable && column.dragging\"\n          [dragY]=\"false\"\n          [dragModel]=\"column\"\n          [dragEventTarget]=\"dragEventTarget\"\n          [headerHeight]=\"headerHeight\"\n          [column]=\"column\"\n          [sortType]=\"sortType\"\n          [sorts]=\"sorts\"\n          [selectionType]=\"selectionType\"\n          [sortAscendingIcon]=\"sortAscendingIcon\"\n          [sortDescendingIcon]=\"sortDescendingIcon\"\n          [allRowsSelected]=\"allRowsSelected\"\n          (sort)=\"onSort($event)\"\n          (select)=\"select.emit($event)\"\n          (columnContextmenu)=\"columnContextmenu.emit($event)\">\n        </datatable-header-cell>\n      </div>\n    </div>\n  ",
-        host: {
-            class: 'datatable-header'
-        }
-    })
-], DataTableHeaderComponent);
 exports.DataTableHeaderComponent = DataTableHeaderComponent;
 
 
@@ -49389,14 +49704,14 @@ var DatatableRowDetailTemplateDirective = (function () {
     function DatatableRowDetailTemplateDirective(template) {
         this.template = template;
     }
+    DatatableRowDetailTemplateDirective = __decorate([
+        core_1$$1.Directive({
+            selector: '[ngx-datatable-row-detail-template]'
+        }),
+        __metadata("design:paramtypes", [core_1$$1.TemplateRef])
+    ], DatatableRowDetailTemplateDirective);
     return DatatableRowDetailTemplateDirective;
 }());
-DatatableRowDetailTemplateDirective = __decorate([
-    core_1$$1.Directive({
-        selector: '[ngx-datatable-row-detail-template]'
-    }),
-    __metadata("design:paramtypes", [core_1$$1.TemplateRef])
-], DatatableRowDetailTemplateDirective);
 exports.DatatableRowDetailTemplateDirective = DatatableRowDetailTemplateDirective;
 
 
@@ -49470,24 +49785,24 @@ var DatatableRowDetailDirective = (function () {
             value: false
         });
     };
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DatatableRowDetailDirective.prototype, "rowHeight", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        core_1$$1.ContentChild(row_detail_template_directive_1.DatatableRowDetailTemplateDirective, { read: core_1$$1.TemplateRef }),
+        __metadata("design:type", core_1$$1.TemplateRef)
+    ], DatatableRowDetailDirective.prototype, "template", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DatatableRowDetailDirective.prototype, "toggle", void 0);
+    DatatableRowDetailDirective = __decorate([
+        core_1$$1.Directive({ selector: 'ngx-datatable-row-detail' })
+    ], DatatableRowDetailDirective);
     return DatatableRowDetailDirective;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DatatableRowDetailDirective.prototype, "rowHeight", void 0);
-__decorate([
-    core_1$$1.Input(),
-    core_1$$1.ContentChild(row_detail_template_directive_1.DatatableRowDetailTemplateDirective, { read: core_1$$1.TemplateRef }),
-    __metadata("design:type", core_1$$1.TemplateRef)
-], DatatableRowDetailDirective.prototype, "template", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DatatableRowDetailDirective.prototype, "toggle", void 0);
-DatatableRowDetailDirective = __decorate([
-    core_1$$1.Directive({ selector: 'ngx-datatable-row-detail' })
-], DatatableRowDetailDirective);
 exports.DatatableRowDetailDirective = DatatableRowDetailDirective;
 
 
@@ -49514,55 +49829,55 @@ var services_1 = __webpack_require__("./src/services/index.ts");
 var NgxDatatableModule = (function () {
     function NgxDatatableModule() {
     }
+    NgxDatatableModule = __decorate([
+        core_1$$1.NgModule({
+            imports: [
+                common_1$$1.CommonModule
+            ],
+            providers: [
+                services_1.ScrollbarHelper
+            ],
+            declarations: [
+                components_1.DataTableFooterTemplateDirective,
+                directives_1.VisibilityDirective,
+                directives_1.DraggableDirective,
+                directives_1.ResizeableDirective,
+                directives_1.OrderableDirective,
+                directives_1.LongPressDirective,
+                components_1.ScrollerComponent,
+                components_1.DatatableComponent,
+                components_1.DataTableColumnDirective,
+                components_1.DataTableHeaderComponent,
+                components_1.DataTableHeaderCellComponent,
+                components_1.DataTableBodyComponent,
+                components_1.DataTableFooterComponent,
+                components_1.DataTablePagerComponent,
+                components_1.ProgressBarComponent,
+                components_1.DataTableBodyRowComponent,
+                components_1.DataTableRowWrapperComponent,
+                components_1.DatatableRowDetailDirective,
+                components_1.DatatableRowDetailTemplateDirective,
+                components_1.DataTableBodyCellComponent,
+                components_1.DataTableSelectionComponent,
+                components_1.DataTableColumnHeaderDirective,
+                components_1.DataTableColumnCellDirective,
+                components_1.DatatableFooterDirective
+            ],
+            exports: [
+                components_1.DatatableComponent,
+                components_1.DatatableRowDetailDirective,
+                components_1.DatatableRowDetailTemplateDirective,
+                components_1.DataTableColumnDirective,
+                components_1.DataTableColumnHeaderDirective,
+                components_1.DataTableColumnCellDirective,
+                components_1.DataTableFooterTemplateDirective,
+                components_1.DatatableFooterDirective,
+                components_1.DataTablePagerComponent
+            ]
+        })
+    ], NgxDatatableModule);
     return NgxDatatableModule;
 }());
-NgxDatatableModule = __decorate([
-    core_1$$1.NgModule({
-        imports: [
-            common_1$$1.CommonModule
-        ],
-        providers: [
-            services_1.ScrollbarHelper
-        ],
-        declarations: [
-            components_1.DataTableFooterTemplateDirective,
-            directives_1.VisibilityDirective,
-            directives_1.DraggableDirective,
-            directives_1.ResizeableDirective,
-            directives_1.OrderableDirective,
-            directives_1.LongPressDirective,
-            components_1.ScrollerComponent,
-            components_1.DatatableComponent,
-            components_1.DataTableColumnDirective,
-            components_1.DataTableHeaderComponent,
-            components_1.DataTableHeaderCellComponent,
-            components_1.DataTableBodyComponent,
-            components_1.DataTableFooterComponent,
-            components_1.DataTablePagerComponent,
-            components_1.ProgressBarComponent,
-            components_1.DataTableBodyRowComponent,
-            components_1.DataTableRowWrapperComponent,
-            components_1.DatatableRowDetailDirective,
-            components_1.DatatableRowDetailTemplateDirective,
-            components_1.DataTableBodyCellComponent,
-            components_1.DataTableSelectionComponent,
-            components_1.DataTableColumnHeaderDirective,
-            components_1.DataTableColumnCellDirective,
-            components_1.DatatableFooterDirective
-        ],
-        exports: [
-            components_1.DatatableComponent,
-            components_1.DatatableRowDetailDirective,
-            components_1.DatatableRowDetailTemplateDirective,
-            components_1.DataTableColumnDirective,
-            components_1.DataTableColumnHeaderDirective,
-            components_1.DataTableColumnCellDirective,
-            components_1.DataTableFooterTemplateDirective,
-            components_1.DatatableFooterDirective,
-            components_1.DataTablePagerComponent
-        ]
-    })
-], NgxDatatableModule);
 exports.NgxDatatableModule = NgxDatatableModule;
 
 
@@ -49670,40 +49985,40 @@ var DraggableDirective = (function () {
             this.subscription = undefined;
         }
     };
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DraggableDirective.prototype, "dragEventTarget", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], DraggableDirective.prototype, "dragModel", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DraggableDirective.prototype, "dragX", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], DraggableDirective.prototype, "dragY", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DraggableDirective.prototype, "dragStart", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DraggableDirective.prototype, "dragging", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], DraggableDirective.prototype, "dragEnd", void 0);
+    DraggableDirective = __decorate([
+        core_1$$1.Directive({ selector: '[draggable]' }),
+        __metadata("design:paramtypes", [core_1$$1.ElementRef])
+    ], DraggableDirective);
     return DraggableDirective;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DraggableDirective.prototype, "dragEventTarget", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], DraggableDirective.prototype, "dragModel", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DraggableDirective.prototype, "dragX", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], DraggableDirective.prototype, "dragY", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DraggableDirective.prototype, "dragStart", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DraggableDirective.prototype, "dragging", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], DraggableDirective.prototype, "dragEnd", void 0);
-DraggableDirective = __decorate([
-    core_1$$1.Directive({ selector: '[draggable]' }),
-    __metadata("design:paramtypes", [core_1$$1.ElementRef])
-], DraggableDirective);
 exports.DraggableDirective = DraggableDirective;
 
 
@@ -49838,51 +50153,51 @@ var LongPressDirective = (function () {
             this.subscription = undefined;
         }
     };
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], LongPressDirective.prototype, "pressEnabled", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Object)
+    ], LongPressDirective.prototype, "pressModel", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], LongPressDirective.prototype, "duration", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], LongPressDirective.prototype, "longPressStart", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], LongPressDirective.prototype, "longPressing", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], LongPressDirective.prototype, "longPressEnd", void 0);
+    __decorate([
+        core_1$$1.HostBinding('class.press'),
+        __metadata("design:type", Boolean),
+        __metadata("design:paramtypes", [])
+    ], LongPressDirective.prototype, "press", null);
+    __decorate([
+        core_1$$1.HostBinding('class.longpress'),
+        __metadata("design:type", Boolean),
+        __metadata("design:paramtypes", [])
+    ], LongPressDirective.prototype, "isLongPress", null);
+    __decorate([
+        core_1$$1.HostListener('mousedown', ['$event']),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", [Object]),
+        __metadata("design:returntype", void 0)
+    ], LongPressDirective.prototype, "onMouseDown", null);
+    LongPressDirective = __decorate([
+        core_1$$1.Directive({ selector: '[long-press]' })
+    ], LongPressDirective);
     return LongPressDirective;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], LongPressDirective.prototype, "pressEnabled", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Object)
-], LongPressDirective.prototype, "pressModel", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], LongPressDirective.prototype, "duration", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], LongPressDirective.prototype, "longPressStart", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], LongPressDirective.prototype, "longPressing", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], LongPressDirective.prototype, "longPressEnd", void 0);
-__decorate([
-    core_1$$1.HostBinding('class.press'),
-    __metadata("design:type", Boolean),
-    __metadata("design:paramtypes", [])
-], LongPressDirective.prototype, "press", null);
-__decorate([
-    core_1$$1.HostBinding('class.longpress'),
-    __metadata("design:type", Boolean),
-    __metadata("design:paramtypes", [])
-], LongPressDirective.prototype, "isLongPress", null);
-__decorate([
-    core_1$$1.HostListener('mousedown', ['$event']),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
-], LongPressDirective.prototype, "onMouseDown", null);
-LongPressDirective = __decorate([
-    core_1$$1.Directive({ selector: '[long-press]' })
-], LongPressDirective);
 exports.LongPressDirective = LongPressDirective;
 
 
@@ -50009,21 +50324,21 @@ var OrderableDirective = (function () {
             return acc;
         }, {});
     };
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], OrderableDirective.prototype, "reorder", void 0);
+    __decorate([
+        core_1$$1.ContentChildren(draggable_directive_1.DraggableDirective, { descendants: true }),
+        __metadata("design:type", core_1$$1.QueryList)
+    ], OrderableDirective.prototype, "draggables", void 0);
+    OrderableDirective = __decorate([
+        core_1$$1.Directive({ selector: '[orderable]' }),
+        __param(1, core_1$$1.Inject(platform_browser_1$$1.DOCUMENT)),
+        __metadata("design:paramtypes", [core_1$$1.KeyValueDiffers, Object])
+    ], OrderableDirective);
     return OrderableDirective;
 }());
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], OrderableDirective.prototype, "reorder", void 0);
-__decorate([
-    core_1$$1.ContentChildren(draggable_directive_1.DraggableDirective, { descendants: true }),
-    __metadata("design:type", core_1$$1.QueryList)
-], OrderableDirective.prototype, "draggables", void 0);
-OrderableDirective = __decorate([
-    core_1$$1.Directive({ selector: '[orderable]' }),
-    __param(1, core_1$$1.Inject(platform_browser_1$$1.DOCUMENT)),
-    __metadata("design:paramtypes", [core_1$$1.KeyValueDiffers, Object])
-], OrderableDirective);
 exports.OrderableDirective = OrderableDirective;
 
 
@@ -50104,39 +50419,39 @@ var ResizeableDirective = (function () {
             this.subscription = undefined;
         }
     };
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Boolean)
+    ], ResizeableDirective.prototype, "resizeEnabled", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], ResizeableDirective.prototype, "minWidth", void 0);
+    __decorate([
+        core_1$$1.Input(),
+        __metadata("design:type", Number)
+    ], ResizeableDirective.prototype, "maxWidth", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], ResizeableDirective.prototype, "resize", void 0);
+    __decorate([
+        core_1$$1.HostListener('mousedown', ['$event']),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", [Object]),
+        __metadata("design:returntype", void 0)
+    ], ResizeableDirective.prototype, "onMousedown", null);
+    ResizeableDirective = __decorate([
+        core_1$$1.Directive({
+            selector: '[resizeable]',
+            host: {
+                '[class.resizeable]': 'resizeEnabled'
+            }
+        }),
+        __metadata("design:paramtypes", [core_1$$1.ElementRef])
+    ], ResizeableDirective);
     return ResizeableDirective;
 }());
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Boolean)
-], ResizeableDirective.prototype, "resizeEnabled", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], ResizeableDirective.prototype, "minWidth", void 0);
-__decorate([
-    core_1$$1.Input(),
-    __metadata("design:type", Number)
-], ResizeableDirective.prototype, "maxWidth", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], ResizeableDirective.prototype, "resize", void 0);
-__decorate([
-    core_1$$1.HostListener('mousedown', ['$event']),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
-], ResizeableDirective.prototype, "onMousedown", null);
-ResizeableDirective = __decorate([
-    core_1$$1.Directive({
-        selector: '[resizeable]',
-        host: {
-            '[class.resizeable]': 'resizeEnabled'
-        }
-    }),
-    __metadata("design:paramtypes", [core_1$$1.ElementRef])
-], ResizeableDirective);
 exports.ResizeableDirective = ResizeableDirective;
 
 
@@ -50208,20 +50523,20 @@ var VisibilityDirective = (function () {
         };
         setTimeout(function () { return check(); });
     };
+    __decorate([
+        core_1$$1.HostBinding('class.visible'),
+        __metadata("design:type", Boolean)
+    ], VisibilityDirective.prototype, "isVisible", void 0);
+    __decorate([
+        core_1$$1.Output(),
+        __metadata("design:type", core_1$$1.EventEmitter)
+    ], VisibilityDirective.prototype, "visible", void 0);
+    VisibilityDirective = __decorate([
+        core_1$$1.Directive({ selector: '[visibilityObserver]' }),
+        __metadata("design:paramtypes", [core_1$$1.ElementRef, core_1$$1.NgZone])
+    ], VisibilityDirective);
     return VisibilityDirective;
 }());
-__decorate([
-    core_1$$1.HostBinding('class.visible'),
-    __metadata("design:type", Boolean)
-], VisibilityDirective.prototype, "isVisible", void 0);
-__decorate([
-    core_1$$1.Output(),
-    __metadata("design:type", core_1$$1.EventEmitter)
-], VisibilityDirective.prototype, "visible", void 0);
-VisibilityDirective = __decorate([
-    core_1$$1.Directive({ selector: '[visibilityObserver]' }),
-    __metadata("design:paramtypes", [core_1$$1.ElementRef, core_1$$1.NgZone])
-], VisibilityDirective);
 exports.VisibilityDirective = VisibilityDirective;
 
 
@@ -50317,13 +50632,13 @@ var ScrollbarHelper = (function () {
         outer.parentNode.removeChild(outer);
         return widthNoScroll - widthWithScroll;
     };
+    ScrollbarHelper = __decorate([
+        core_1$$1.Injectable(),
+        __param(0, core_1$$1.Inject(platform_browser_1$$1.DOCUMENT)),
+        __metadata("design:paramtypes", [Object])
+    ], ScrollbarHelper);
     return ScrollbarHelper;
 }());
-ScrollbarHelper = __decorate([
-    core_1$$1.Injectable(),
-    __param(0, core_1$$1.Inject(platform_browser_1$$1.DOCUMENT)),
-    __metadata("design:paramtypes", [Object])
-], ScrollbarHelper);
 exports.ScrollbarHelper = ScrollbarHelper;
 
 
@@ -50769,7 +51084,7 @@ exports.columnsByPinArr = columnsByPinArr;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-if (document !== undefined && !document.elementsFromPoint) {
+if (typeof document !== 'undefined' && !document.elementsFromPoint) {
     document.elementsFromPoint = elementsFromPoint;
 }
 /*tslint:disable*/
@@ -50811,7 +51126,7 @@ function elementsFromPoint(x, y) {
     return elements;
 }
 exports.elementsFromPoint = elementsFromPoint;
-/*tslint:enable*/
+/*tslint:enable*/ 
 
 
 /***/ }),
@@ -51075,13 +51390,13 @@ function getContentWidth(allColumns, defaultColWidth) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var camel_case_1 = __webpack_require__("./src/utils/camel-case.ts");
 var cache = {};
-var testStyle = document !== undefined ? document.createElement('div').style : undefined;
+var testStyle = typeof document !== 'undefined' ? document.createElement('div').style : undefined;
 // Get Prefix
 // http://davidwalsh.name/vendor-prefix
 var prefix = (function () {
-    var styles = window !== undefined ? window.getComputedStyle(document.documentElement, '') : undefined;
-    var pre = styles !== undefined ? (Array.prototype.slice.call(styles).join('').match(/-(moz|webkit|ms)-/))[1] : undefined;
-    var dom = pre !== undefined ? ('WebKit|Moz|MS|O').match(new RegExp('(' + pre + ')', 'i'))[1] : undefined;
+    var styles = typeof window !== 'undefined' ? window.getComputedStyle(document.documentElement, '') : undefined;
+    var pre = typeof styles !== 'undefined' ? (Array.prototype.slice.call(styles).join('').match(/-(moz|webkit|ms)-/))[1] : undefined;
+    var dom = typeof pre !== 'undefined' ? ('WebKit|Moz|MS|O').match(new RegExp('(' + pre + ')', 'i'))[1] : undefined;
     return dom ? {
         dom: dom,
         lowercase: pre,
@@ -51535,14 +51850,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var prefixes_1 = __webpack_require__("./src/utils/prefixes.ts");
 var camel_case_1 = __webpack_require__("./src/utils/camel-case.ts");
 // browser detection and prefixing tools
-var transform = prefixes_1.getVendorPrefixedName('transform');
-var backfaceVisibility = prefixes_1.getVendorPrefixedName('backfaceVisibility');
-var hasCSSTransforms = !!prefixes_1.getVendorPrefixedName('transform');
-var hasCSS3DTransforms = !!prefixes_1.getVendorPrefixedName('perspective');
-var ua = window ? window.navigator.userAgent : "Chrome";
+var transform = typeof window !== 'undefined' ? prefixes_1.getVendorPrefixedName('transform') : undefined;
+var backfaceVisibility = typeof window !== 'undefined' ? prefixes_1.getVendorPrefixedName('backfaceVisibility') : undefined;
+var hasCSSTransforms = typeof window !== 'undefined' ? !!prefixes_1.getVendorPrefixedName('transform') : undefined;
+var hasCSS3DTransforms = typeof window !== 'undefined' ? !!prefixes_1.getVendorPrefixedName('perspective') : undefined;
+var ua = typeof window !== 'undefined' ? window.navigator.userAgent : "Chrome";
 var isSafari = (/Safari\//).test(ua) && !(/Chrome\//).test(ua);
 function translateXY(styles, x, y) {
-    if (hasCSSTransforms) {
+    if (typeof transform !== 'undefined' && hasCSSTransforms) {
         if (!isSafari && hasCSS3DTransforms) {
             styles[transform] = "translate3d(" + x + "px, " + y + "px, 0)";
             styles[backfaceVisibility] = 'hidden';
@@ -51591,7 +51906,7 @@ var index_1 = index.NgxDatatableModule;
 var index_2 = index.DatatableComponent;
 
 /**
- * @license Angular v4.2.4
+ * @license Angular v4.3.1
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -51678,24 +51993,25 @@ var AnimationFactory = (function () {
 var AUTO_STYLE = '*';
 /**
  * `trigger` is an animation-specific function that is designed to be used inside of Angular's
- * animation DSL language. If this information is new, please navigate to the {\@link
- * Component#animations component animations metadata page} to gain a better understanding of
- * how animations in Angular are used.
+ * animation DSL language. If this information is new, please navigate to the
+ * {\@link Component#animations component animations metadata page} to gain a better
+ * understanding of how animations in Angular are used.
  *
- * `trigger` Creates an animation trigger which will a list of {\@link state state} and {\@link
- * transition transition} entries that will be evaluated when the expression bound to the trigger
- * changes.
+ * `trigger` Creates an animation trigger which will a list of {\@link state state} and
+ * {\@link transition transition} entries that will be evaluated when the expression
+ * bound to the trigger changes.
  *
- * Triggers are registered within the component annotation data under the {\@link
- * Component#animations animations section}. An animation trigger can be placed on an element
- * within a template by referencing the name of the trigger followed by the expression value that the
+ * Triggers are registered within the component annotation data under the
+ * {\@link Component#animations animations section}. An animation trigger can be placed on an element
+ * within a template by referencing the name of the trigger followed by the expression value that
+ * the
  * trigger is bound to (in the form of `[\@triggerName]="expression"`.
  *
  * ### Usage
  *
  * `trigger` will create an animation trigger reference based on the provided `name` value. The
- * provided `animation` value is expected to be an array consisting of {\@link state state} and {\@link
- * transition transition} declarations.
+ * provided `animation` value is expected to be an array consisting of {\@link state state} and
+ * {\@link transition transition} declarations.
  *
  * ```typescript
  * \@Component({
@@ -51721,9 +52037,65 @@ var AUTO_STYLE = '*';
  * ```html
  * <!-- somewhere inside of my-component-tpl.html -->
  * <div [\@myAnimationTrigger]="myStatusExp">...</div>
- * tools/gulp-tasks/validate-commit-message.js ```
+ * ```
  *
- * {\@example core/animation/ts/dsl/animation_example.ts region='Component'}
+ * ## Disable Child Animations
+ * A special animation control binding called `\@.disabled` can be placed on an element which will
+ * then disable animations for any inner animation triggers situated within the element.
+ *
+ * When true, the `\@.disabled` binding will prevent inner animations from rendering. The example
+ * below shows how to use this feature:
+ *
+ * ```ts
+ * \@Component({
+ *   selector: 'my-component',
+ *   template: `
+ *     <div [\@.disabled]="isDisabled">
+ *       <div [\@childAnimation]="exp"></div>
+ *     </div>
+ *   `,
+ *   animations: [
+ *     trigger("childAnimation", [
+ *       // ...
+ *     ])
+ *   ]
+ * })
+ * class MyComponent {
+ *   isDisabled = true;
+ *   exp = '...';
+ * }
+ * ```
+ *
+ * The `\@childAnimation` trigger will not animate because `\@.disabled` prevents it from happening
+ * (when true).
+ *
+ * Note that `\@.disbled` will only disable inner animations (any animations running on the same
+ * element will not be disabled).
+ *
+ * ### Disabling Animations Application-wide
+ * When an area of the template is set to have animations disabled, **all** inner components will
+ * also have their animations disabled as well. This means that all animations for an angular
+ * application can be disabled by placing a host binding set on `\@.disabled` on the topmost Angular
+ * component.
+ *
+ * ```ts
+ * import {Component, HostBinding} from '\@angular/core';
+ *
+ * \@Component({
+ *   selector: 'app-component',
+ *   templateUrl: 'app.component.html',
+ * })
+ * class AppComponent {
+ *   \@HostBinding('\@.disabled')
+ *   public animationsDisabled = true;
+ * }
+ * ```
+ *
+ * ### What about animations that us `query()` and `animateChild()`?
+ * Despite inner animations being disabled, a parent animation can {\@link query query} for inner
+ * elements located in disabled areas of the template and still animate them as it sees fit. This is
+ * also the case for when a sub animation is queried by a parent and then later animated using {\@link
+ * animateChild animateChild}.
  *
  * \@experimental Animation support is experimental.
  * @param {?} name
@@ -52347,6 +52719,16 @@ var AnimationGroupPlayer = (function () {
         enumerable: true,
         configurable: true
     });
+    /**
+     * @return {?}
+     */
+    AnimationGroupPlayer.prototype.beforeDestroy = function () {
+        this.players.forEach(function (player) {
+            if (player.beforeDestroy) {
+                player.beforeDestroy();
+            }
+        });
+    };
     return AnimationGroupPlayer;
 }());
 /**
@@ -52359,7 +52741,7 @@ var AnimationGroupPlayer = (function () {
 var ɵPRE_STYLE = '!';
 
 /**
- * @license Angular v4.2.4
+ * @license Angular v4.3.1
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -52394,15 +52776,20 @@ function normalizeKeyframes(driver, normalizer, element, keyframes$$1, preStyles
         Object.keys(kf).forEach(function (prop) {
             var normalizedProp = prop;
             var normalizedValue = kf[prop];
-            if (normalizedValue == ɵPRE_STYLE) {
-                normalizedValue = preStyles[prop];
-            }
-            else if (normalizedValue == AUTO_STYLE) {
-                normalizedValue = postStyles[prop];
-            }
-            else if (prop != 'offset') {
-                normalizedProp = normalizer.normalizePropertyName(prop, errors);
-                normalizedValue = normalizer.normalizeStyleValue(prop, normalizedProp, kf[prop], errors);
+            if (prop !== 'offset') {
+                normalizedProp = normalizer.normalizePropertyName(normalizedProp, errors);
+                switch (normalizedValue) {
+                    case ɵPRE_STYLE:
+                        normalizedValue = preStyles[prop];
+                        break;
+                    case AUTO_STYLE:
+                        normalizedValue = postStyles[prop];
+                        break;
+                    default:
+                        normalizedValue =
+                            normalizer.normalizeStyleValue(prop, normalizedProp, normalizedValue, errors);
+                        break;
+                }
             }
             normalizedKeyframe[normalizedProp] = normalizedValue;
         });
@@ -52556,23 +52943,14 @@ var NG_TRIGGER_CLASSNAME = 'ng-trigger';
 var NG_TRIGGER_SELECTOR = '.ng-trigger';
 var NG_ANIMATING_CLASSNAME = 'ng-animating';
 var NG_ANIMATING_SELECTOR = '.ng-animating';
-/**
- * @param {?} value
- * @return {?}
- */
 function resolveTimingValue(value) {
     if (typeof value == 'number')
         return value;
-    var /** @type {?} */ matches = ((value)).match(/^(-?[\.\d]+)(m?s)/);
+    var matches = value.match(/^(-?[\.\d]+)(m?s)/);
     if (!matches || matches.length < 2)
         return 0;
     return _convertTimeValueToMS(parseFloat(matches[1]), matches[2]);
 }
-/**
- * @param {?} value
- * @param {?} unit
- * @return {?}
- */
 function _convertTimeValueToMS(value, unit) {
     switch (unit) {
         case 's':
@@ -52581,49 +52959,38 @@ function _convertTimeValueToMS(value, unit) {
             return value;
     }
 }
-/**
- * @param {?} timings
- * @param {?} errors
- * @param {?=} allowNegativeValues
- * @return {?}
- */
 function resolveTiming(timings, errors, allowNegativeValues) {
-    return timings.hasOwnProperty('duration') ? (timings) :
-        parseTimeExpression(/** @type {?} */ (timings), errors, allowNegativeValues);
+    return timings.hasOwnProperty('duration') ?
+        timings :
+        parseTimeExpression(timings, errors, allowNegativeValues);
 }
-/**
- * @param {?} exp
- * @param {?} errors
- * @param {?=} allowNegativeValues
- * @return {?}
- */
 function parseTimeExpression(exp, errors, allowNegativeValues) {
-    var /** @type {?} */ regex = /^(-?[\.\d]+)(m?s)(?:\s+(-?[\.\d]+)(m?s))?(?:\s+([-a-z]+(?:\(.+?\))?))?$/i;
-    var /** @type {?} */ duration;
-    var /** @type {?} */ delay = 0;
-    var /** @type {?} */ easing = '';
+    var regex = /^(-?[\.\d]+)(m?s)(?:\s+(-?[\.\d]+)(m?s))?(?:\s+([-a-z]+(?:\(.+?\))?))?$/i;
+    var duration;
+    var delay = 0;
+    var easing = '';
     if (typeof exp === 'string') {
-        var /** @type {?} */ matches = exp.match(regex);
+        var matches = exp.match(regex);
         if (matches === null) {
             errors.push("The provided timing value \"" + exp + "\" is invalid.");
             return { duration: 0, delay: 0, easing: '' };
         }
         duration = _convertTimeValueToMS(parseFloat(matches[1]), matches[2]);
-        var /** @type {?} */ delayMatch = matches[3];
+        var delayMatch = matches[3];
         if (delayMatch != null) {
             delay = _convertTimeValueToMS(Math.floor(parseFloat(delayMatch)), matches[4]);
         }
-        var /** @type {?} */ easingVal = matches[5];
+        var easingVal = matches[5];
         if (easingVal) {
             easing = easingVal;
         }
     }
     else {
-        duration = (exp);
+        duration = exp;
     }
     if (!allowNegativeValues) {
-        var /** @type {?} */ containsErrors = false;
-        var /** @type {?} */ startIndex = errors.length;
+        var containsErrors = false;
+        var startIndex = errors.length;
         if (duration < 0) {
             errors.push("Duration values below 0 are not allowed for this animation step.");
             containsErrors = true;
@@ -52638,29 +53005,18 @@ function parseTimeExpression(exp, errors, allowNegativeValues) {
     }
     return { duration: duration, delay: delay, easing: easing };
 }
-/**
- * @param {?} obj
- * @param {?=} destination
- * @return {?}
- */
 function copyObj(obj, destination) {
     if (destination === void 0) { destination = {}; }
     Object.keys(obj).forEach(function (prop) { destination[prop] = obj[prop]; });
     return destination;
 }
-/**
- * @param {?} styles
- * @param {?} readPrototype
- * @param {?=} destination
- * @return {?}
- */
 function copyStyles(styles, readPrototype, destination) {
     if (destination === void 0) { destination = {}; }
     if (readPrototype) {
         // we make use of a for-in loop so that the
         // prototypically inherited properties are
         // revealed from the backFill map
-        for (var /** @type {?} */ prop in styles) {
+        for (var prop in styles) {
             destination[prop] = styles[prop];
         }
     }
@@ -52669,55 +53025,35 @@ function copyStyles(styles, readPrototype, destination) {
     }
     return destination;
 }
-/**
- * @param {?} element
- * @param {?} styles
- * @return {?}
- */
 function setStyles(element, styles) {
     if (element['style']) {
         Object.keys(styles).forEach(function (prop) {
-            var /** @type {?} */ camelProp = dashCaseToCamelCase(prop);
+            var camelProp = dashCaseToCamelCase(prop);
             element.style[camelProp] = styles[prop];
         });
     }
 }
-/**
- * @param {?} element
- * @param {?} styles
- * @return {?}
- */
 function eraseStyles(element, styles) {
     if (element['style']) {
         Object.keys(styles).forEach(function (prop) {
-            var /** @type {?} */ camelProp = dashCaseToCamelCase(prop);
+            var camelProp = dashCaseToCamelCase(prop);
             element.style[camelProp] = '';
         });
     }
 }
-/**
- * @param {?} steps
- * @return {?}
- */
 function normalizeAnimationEntry(steps) {
     if (Array.isArray(steps)) {
         if (steps.length == 1)
             return steps[0];
         return sequence(steps);
     }
-    return (steps);
+    return steps;
 }
-/**
- * @param {?} value
- * @param {?} options
- * @param {?} errors
- * @return {?}
- */
 function validateStyleParams(value, options, errors) {
-    var /** @type {?} */ params = options.params || {};
+    var params = options.params || {};
     if (typeof value !== 'string')
         return;
-    var /** @type {?} */ matches = value.toString().match(PARAM_REGEX);
+    var matches = value.toString().match(PARAM_REGEX);
     if (matches) {
         matches.forEach(function (varName) {
             if (!params.hasOwnProperty(varName)) {
@@ -52727,16 +53063,10 @@ function validateStyleParams(value, options, errors) {
     }
 }
 var PARAM_REGEX = /\{\{\s*(.+?)\s*\}\}/g;
-/**
- * @param {?} value
- * @param {?} params
- * @param {?} errors
- * @return {?}
- */
 function interpolateParams(value, params, errors) {
-    var /** @type {?} */ original = value.toString();
-    var /** @type {?} */ str = original.replace(PARAM_REGEX, function (_, varName) {
-        var /** @type {?} */ localVal = params[varName];
+    var original = value.toString();
+    var str = original.replace(PARAM_REGEX, function (_, varName) {
+        var localVal = params[varName];
         // this means that the value was never overidden by the data passed in by the user
         if (!params.hasOwnProperty(varName)) {
             errors.push("Please provide a value for the animation param " + varName);
@@ -52747,31 +53077,22 @@ function interpolateParams(value, params, errors) {
     // we do this to assert that numeric values stay as they are
     return str == original ? value : str;
 }
-/**
- * @param {?} iterator
- * @return {?}
- */
 function iteratorToArray(iterator) {
-    var /** @type {?} */ arr = [];
-    var /** @type {?} */ item = iterator.next();
+    var arr = [];
+    var item = iterator.next();
     while (!item.done) {
         arr.push(item.value);
         item = iterator.next();
     }
     return arr;
 }
-/**
- * @param {?} source
- * @param {?} destination
- * @return {?}
- */
 function mergeAnimationOptions(source, destination) {
     if (source.params) {
-        var /** @type {?} */ p0_1 = source.params;
+        var p0_1 = source.params;
         if (!destination.params) {
             destination.params = {};
         }
-        var /** @type {?} */ p1_1 = destination.params;
+        var p1_1 = destination.params;
         Object.keys(p0_1).forEach(function (param) {
             if (!p1_1.hasOwnProperty(param)) {
                 p1_1[param] = p0_1[param];
@@ -52781,10 +53102,6 @@ function mergeAnimationOptions(source, destination) {
     return destination;
 }
 var DASH_CASE_REGEXP = /-+([a-z0-9])/g;
-/**
- * @param {?} input
- * @return {?}
- */
 function dashCaseToCamelCase(input) {
     return input.replace(DASH_CASE_REGEXP, function () {
         var m = [];
@@ -52793,6 +53110,9 @@ function dashCaseToCamelCase(input) {
         }
         return m[1].toUpperCase();
     });
+}
+function allowPreviousPlayerStylesMerge(duration, delay) {
+    return duration === 0 || delay === 0;
 }
 /**
  * @license
@@ -53295,6 +53615,7 @@ var AnimationAstBuilderVisitor = (function () {
      */
     AnimationAstBuilderVisitor.prototype._resetContextStyleTimingState = function (context) {
         context.currentQuerySelector = ROOT_SELECTOR;
+        context.collectedStyles = {};
         context.collectedStyles[ROOT_SELECTOR] = {};
         context.currentTime = 0;
     };
@@ -54192,10 +54513,11 @@ var AnimationTimelineBuilderVisitor = (function () {
                 delay = parentContext.currentStaggerTime;
                 break;
         }
+        var /** @type {?} */ timeline = context.currentTimeline;
         if (delay) {
-            context.currentTimeline.delayNextStep(delay);
+            timeline.delayNextStep(delay);
         }
-        var /** @type {?} */ startingTime = context.currentTimeline.currentTime;
+        var /** @type {?} */ startingTime = timeline.currentTime;
         ast.animation.visit(this, context);
         context.previousNode = ast;
         // time = duration + delay
@@ -54434,11 +54756,19 @@ var TimelineBuilder = (function () {
      * @return {?}
      */
     TimelineBuilder.prototype.delayNextStep = function (delay) {
-        if (this.duration == 0) {
-            this.startTime += delay;
+        // in the event that a style() step is placed right before a stagger()
+        // and that style() step is the very first style() value in the animation
+        // then we need to make a copy of the keyframe [0, copy, 1] so that the delay
+        // properly applies the style() values to work with the stagger...
+        var /** @type {?} */ hasPreStyleStep = this._keyframes.size == 1 && Object.keys(this._pendingStyles).length;
+        if (this.duration || hasPreStyleStep) {
+            this.forwardTime(this.currentTime + delay);
+            if (hasPreStyleStep) {
+                this.snapshotCurrentStyles();
+            }
         }
         else {
-            this.forwardTime(this.currentTime + delay);
+            this.startTime += delay;
         }
     };
     /**
@@ -54842,9 +55172,10 @@ function makeBooleanMap(keys) {
  * @param {?} queriedElements
  * @param {?} preStyleProps
  * @param {?} postStyleProps
+ * @param {?=} errors
  * @return {?}
  */
-function createTransitionInstruction(element, triggerName, fromState, toState, isRemovalTransition, fromStyles, toStyles, timelines, queriedElements, preStyleProps, postStyleProps) {
+function createTransitionInstruction(element, triggerName, fromState, toState, isRemovalTransition, fromStyles, toStyles, timelines, queriedElements, preStyleProps, postStyleProps, errors) {
     return {
         type: 0 /* TransitionAnimation */,
         element: element,
@@ -54857,7 +55188,8 @@ function createTransitionInstruction(element, triggerName, fromState, toState, i
         timelines: timelines,
         queriedElements: queriedElements,
         preStyleProps: preStyleProps,
-        postStyleProps: postStyleProps
+        postStyleProps: postStyleProps,
+        errors: errors
     };
 }
 /**
@@ -54900,15 +55232,15 @@ var AnimationTransitionFactory = (function () {
         var /** @type {?} */ backupStateStyles = this._stateStyles['*'] || {};
         var /** @type {?} */ currentStateStyles = this._stateStyles[currentState] || backupStateStyles;
         var /** @type {?} */ nextStateStyles = this._stateStyles[nextState] || backupStateStyles;
+        var /** @type {?} */ queriedElements = new Set();
+        var /** @type {?} */ preStyleMap = new Map();
+        var /** @type {?} */ postStyleMap = new Map();
+        var /** @type {?} */ isRemoval = nextState === 'void';
         var /** @type {?} */ errors = [];
         var /** @type {?} */ timelines = buildAnimationTimelines(driver, element, this.ast.animation, currentStateStyles, nextStateStyles, animationOptions, subInstructions, errors);
         if (errors.length) {
-            var /** @type {?} */ errorMessage = "animation building failed:\n" + errors.join("\n");
-            throw new Error(errorMessage);
+            return createTransitionInstruction(element, this._triggerName, currentState, nextState, isRemoval, currentStateStyles, nextStateStyles, [], [], preStyleMap, postStyleMap, errors);
         }
-        var /** @type {?} */ preStyleMap = new Map();
-        var /** @type {?} */ postStyleMap = new Map();
-        var /** @type {?} */ queriedElements = new Set();
         timelines.forEach(function (tl) {
             var /** @type {?} */ elm = tl.element;
             var /** @type {?} */ preProps = getOrSetAsInMap(preStyleMap, elm, {});
@@ -54920,7 +55252,7 @@ var AnimationTransitionFactory = (function () {
             }
         });
         var /** @type {?} */ queriedElementsList = iteratorToArray(queriedElements.values());
-        return createTransitionInstruction(element, this._triggerName, currentState, nextState, nextState === 'void', currentStateStyles, nextStateStyles, timelines, queriedElementsList, preStyleMap, postStyleMap);
+        return createTransitionInstruction(element, this._triggerName, currentState, nextState, isRemoval, currentStateStyles, nextStateStyles, timelines, queriedElementsList, preStyleMap, postStyleMap);
     };
     return AnimationTransitionFactory;
 }());
@@ -55201,6 +55533,10 @@ var TimelineAnimationEngine = (function () {
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
+var QUEUED_CLASSNAME = 'ng-animate-queued';
+var QUEUED_SELECTOR = '.ng-animate-queued';
+var DISABLED_CLASSNAME = 'ng-animate-disabled';
+var DISABLED_SELECTOR = '.ng-animate-disabled';
 var EMPTY_PLAYER_ARRAY = [];
 var NULL_REMOVAL_STATE = {
     namespaceId: '',
@@ -55255,8 +55591,6 @@ var StateValue = (function () {
 var VOID_VALUE = 'void';
 var DEFAULT_STATE_VALUE = new StateValue(VOID_VALUE);
 var DELETED_STATE_VALUE = new StateValue('DELETED');
-var POTENTIAL_ENTER_CLASSNAME = ENTER_CLASSNAME + '-temp';
-var POTENTIAL_ENTER_SELECTOR = '.' + POTENTIAL_ENTER_CLASSNAME;
 var AnimationTransitionNamespace = (function () {
     /**
      * @param {?} id
@@ -55373,6 +55707,15 @@ var AnimationTransitionNamespace = (function () {
         else if (fromState === DELETED_STATE_VALUE) {
             return player;
         }
+        var /** @type {?} */ isRemoval = toState.value === VOID_VALUE;
+        // normally this isn't reached by here, however, if an object expression
+        // is passed in then it may be a new object each time. Comparing the value
+        // is important since that will stay the same despite there being a new object.
+        // The removal arc here is special cased because the same element is triggered
+        // twice in the event that it contains animations on the outer/inner portions
+        // of the host container
+        if (!isRemoval && fromState.value === toState.value)
+            return;
         var /** @type {?} */ playersOnElement = getOrSetAsInMap(this._engine.playersByElement, element, []);
         playersOnElement.forEach(function (player) {
             // only remove the player if it is queued on the EXACT same trigger/namespace
@@ -55394,10 +55737,10 @@ var AnimationTransitionNamespace = (function () {
         this._engine.totalQueuedPlayers++;
         this._queue.push({ element: element, triggerName: triggerName, transition: transition$$1, fromState: fromState, toState: toState, player: player, isFallbackTransition: isFallbackTransition });
         if (!isFallbackTransition) {
-            addClass(element, NG_ANIMATING_CLASSNAME);
+            addClass(element, QUEUED_CLASSNAME);
+            player.onStart(function () { removeClass(element, QUEUED_CLASSNAME); });
         }
         player.onDone(function () {
-            removeClass(element, NG_ANIMATING_CLASSNAME);
             var /** @type {?} */ index = _this.players.indexOf(player);
             if (index >= 0) {
                 _this.players.splice(index, 1);
@@ -55645,6 +55988,7 @@ var TransitionAnimationEngine = (function () {
         this.playersByElement = new Map();
         this.playersByQueriedElement = new Map();
         this.statesByElement = new Map();
+        this.disabledNodes = new Set();
         this.totalAnimations = 0;
         this.totalQueuedPlayers = 0;
         this._namespaceLookup = {};
@@ -55827,6 +56171,23 @@ var TransitionAnimationEngine = (function () {
      */
     TransitionAnimationEngine.prototype.collectEnterElement = function (element) { this.collectedEnterElements.push(element); };
     /**
+     * @param {?} element
+     * @param {?} value
+     * @return {?}
+     */
+    TransitionAnimationEngine.prototype.markElementAsDisabled = function (element, value) {
+        if (value) {
+            if (!this.disabledNodes.has(element)) {
+                this.disabledNodes.add(element);
+                addClass(element, DISABLED_CLASSNAME);
+            }
+        }
+        else if (this.disabledNodes.has(element)) {
+            this.disabledNodes.delete(element);
+            removeClass(element, DISABLED_CLASSNAME);
+        }
+    };
+    /**
      * @param {?} namespaceId
      * @param {?} element
      * @param {?} context
@@ -55889,7 +56250,8 @@ var TransitionAnimationEngine = (function () {
      */
     TransitionAnimationEngine.prototype.destroyInnerAnimations = function (containerElement) {
         var _this = this;
-        this.driver.query(containerElement, NG_TRIGGER_SELECTOR, true).forEach(function (element) {
+        var /** @type {?} */ elements = this.driver.query(containerElement, NG_TRIGGER_SELECTOR, true);
+        elements.forEach(function (element) {
             var /** @type {?} */ players = _this.playersByElement.get(element);
             if (players) {
                 players.forEach(function (player) {
@@ -55909,6 +56271,17 @@ var TransitionAnimationEngine = (function () {
                 Object.keys(stateMap).forEach(function (triggerName) { return stateMap[triggerName] = DELETED_STATE_VALUE; });
             }
         });
+        if (this.playersByQueriedElement.size == 0)
+            return;
+        elements = this.driver.query(containerElement, NG_ANIMATING_SELECTOR, true);
+        if (elements.length) {
+            elements.forEach(function (element) {
+                var /** @type {?} */ players = _this.playersByQueriedElement.get(element);
+                if (players) {
+                    players.forEach(function (player) { return player.finish(); });
+                }
+            });
+        }
     };
     /**
      * @return {?}
@@ -55929,6 +56302,7 @@ var TransitionAnimationEngine = (function () {
      * @return {?}
      */
     TransitionAnimationEngine.prototype.processLeaveNode = function (element) {
+        var _this = this;
         var /** @type {?} */ details = (element[REMOVAL_FLAG]);
         if (details && details.setForRemoval) {
             // this will prevent it from removing it twice
@@ -55942,6 +56316,12 @@ var TransitionAnimationEngine = (function () {
             }
             this._onRemovalComplete(element, details.setForRemoval);
         }
+        if (this.driver.matchesElement(element, DISABLED_SELECTOR)) {
+            this.markElementAsDisabled(element, false);
+        }
+        this.driver.query(element, DISABLED_SELECTOR, true).forEach(function (node) {
+            _this.markElementAsDisabled(element, false);
+        });
     };
     /**
      * @param {?=} microtaskId
@@ -55957,7 +56337,15 @@ var TransitionAnimationEngine = (function () {
         }
         if (this._namespaceList.length &&
             (this.totalQueuedPlayers || this.collectedLeaveElements.length)) {
-            players = this._flushAnimations(microtaskId);
+            var /** @type {?} */ cleanupFns = [];
+            try {
+                players = this._flushAnimations(cleanupFns, microtaskId);
+            }
+            finally {
+                for (var /** @type {?} */ i = 0; i < cleanupFns.length; i++) {
+                    cleanupFns[i]();
+                }
+            }
         }
         else {
             for (var /** @type {?} */ i = 0; i < this.collectedLeaveElements.length; i++) {
@@ -55985,10 +56373,11 @@ var TransitionAnimationEngine = (function () {
         }
     };
     /**
+     * @param {?} cleanupFns
      * @param {?} microtaskId
      * @return {?}
      */
-    TransitionAnimationEngine.prototype._flushAnimations = function (microtaskId) {
+    TransitionAnimationEngine.prototype._flushAnimations = function (cleanupFns, microtaskId) {
         var _this = this;
         var /** @type {?} */ subTimelines = new ElementInstructionMap();
         var /** @type {?} */ skippedPlayers = [];
@@ -55997,13 +56386,23 @@ var TransitionAnimationEngine = (function () {
         var /** @type {?} */ queriedElements = new Map();
         var /** @type {?} */ allPreStyleElements = new Map();
         var /** @type {?} */ allPostStyleElements = new Map();
+        var /** @type {?} */ disabledElementsSet = new Set();
+        this.disabledNodes.forEach(function (node) {
+            var /** @type {?} */ nodesThatAreDisabled = _this.driver.query(node, QUEUED_SELECTOR, true);
+            for (var /** @type {?} */ i = 0; i < nodesThatAreDisabled.length; i++) {
+                disabledElementsSet.add(nodesThatAreDisabled[i]);
+            }
+        });
+        var /** @type {?} */ bodyNode = getBodyNode();
+        var /** @type {?} */ allEnterNodes = this.collectedEnterElements.length ?
+            this.collectedEnterElements.filter(createIsRootFilterFn(this.collectedEnterElements)) :
+            [];
         // this must occur before the instructions are built below such that
         // the :enter queries match the elements (since the timeline queries
         // are fired during instruction building).
-        var /** @type {?} */ bodyNode = getBodyNode();
-        var /** @type {?} */ allEnterNodes = this.collectedEnterElements.length ?
-            collectEnterElements(this.driver, this.collectedEnterElements) :
-            [];
+        for (var /** @type {?} */ i = 0; i < allEnterNodes.length; i++) {
+            addClass(allEnterNodes[i], ENTER_CLASSNAME);
+        }
         var /** @type {?} */ allLeaveNodes = [];
         var /** @type {?} */ leaveNodesWithoutAnimations = [];
         for (var /** @type {?} */ i = 0; i < this.collectedLeaveElements.length; i++) {
@@ -56017,18 +56416,30 @@ var TransitionAnimationEngine = (function () {
                 }
             }
         }
+        cleanupFns.push(function () {
+            allEnterNodes.forEach(function (element) { return removeClass(element, ENTER_CLASSNAME); });
+            allLeaveNodes.forEach(function (element) {
+                removeClass(element, LEAVE_CLASSNAME);
+                _this.processLeaveNode(element);
+            });
+        });
+        var /** @type {?} */ allPlayers = [];
+        var /** @type {?} */ erroneousTransitions = [];
         for (var /** @type {?} */ i = this._namespaceList.length - 1; i >= 0; i--) {
             var /** @type {?} */ ns = this._namespaceList[i];
             ns.drainQueuedTransitions(microtaskId).forEach(function (entry) {
                 var /** @type {?} */ player = entry.player;
+                allPlayers.push(player);
                 var /** @type {?} */ element = entry.element;
                 if (!bodyNode || !_this.driver.containsElement(bodyNode, element)) {
                     player.destroy();
                     return;
                 }
-                var /** @type {?} */ instruction = _this._buildInstruction(entry, subTimelines);
-                if (!instruction)
+                var /** @type {?} */ instruction = ((_this._buildInstruction(entry, subTimelines)));
+                if (instruction.errors && instruction.errors.length) {
+                    erroneousTransitions.push(instruction);
                     return;
+                }
                 // if a unmatched transition is queued to go then it SHOULD NOT render
                 // an animation and cancel the previously running animations.
                 if (entry.isFallbackTransition) {
@@ -56067,6 +56478,15 @@ var TransitionAnimationEngine = (function () {
                 });
             });
         }
+        if (erroneousTransitions.length) {
+            var /** @type {?} */ msg_1 = "Unable to process animations due to the following failed trigger transitions\n";
+            erroneousTransitions.forEach(function (instruction) {
+                msg_1 += "@" + instruction.triggerName + " has failed due to:\n"; /** @type {?} */
+                ((instruction.errors)).forEach(function (error) { msg_1 += "- " + error + "\n"; });
+            });
+            allPlayers.forEach(function (player) { return player.destroy(); });
+            throw new Error(msg_1);
+        }
         // these can only be detected here since we have a map of all the elements
         // that have animations attached to them...
         var /** @type {?} */ enterNodesWithoutAnimations = [];
@@ -56104,6 +56524,10 @@ var TransitionAnimationEngine = (function () {
             // this means that it was never consumed by a parent animation which
             // means that it is independent and therefore should be set for animation
             if (subTimelines.has(element)) {
+                if (disabledElementsSet.has(element)) {
+                    skippedPlayers.push(player);
+                    return;
+                }
                 var /** @type {?} */ innerPlayer = _this._buildAnimation(player.namespaceId, instruction, allPreviousPlayersMap, skippedPlayersMap, preStylesMap, postStylesMap);
                 player.setRealPlayer(innerPlayer);
                 var /** @type {?} */ parentHasPriority = null;
@@ -56156,17 +56580,39 @@ var TransitionAnimationEngine = (function () {
         // operation right away unless a parent animation is ongoing.
         for (var /** @type {?} */ i = 0; i < allLeaveNodes.length; i++) {
             var /** @type {?} */ element = allLeaveNodes[i];
-            var /** @type {?} */ players = queriedElements.get(element);
-            if (players) {
+            var /** @type {?} */ details = (element[REMOVAL_FLAG]);
+            removeClass(element, LEAVE_CLASSNAME);
+            // this means the element has a removal animation that is being
+            // taken care of and therefore the inner elements will hang around
+            // until that animation is over (or the parent queried animation)
+            if (details && details.hasAnimation)
+                continue;
+            var /** @type {?} */ players = [];
+            // if this element is queried or if it contains queried children
+            // then we want for the element not to be removed from the page
+            // until the queried animations have finished
+            if (queriedElements.size) {
+                var /** @type {?} */ queriedPlayerResults = queriedElements.get(element);
+                if (queriedPlayerResults && queriedPlayerResults.length) {
+                    players.push.apply(players, queriedPlayerResults);
+                }
+                var /** @type {?} */ queriedInnerElements = this.driver.query(element, NG_ANIMATING_SELECTOR, true);
+                for (var /** @type {?} */ j = 0; j < queriedInnerElements.length; j++) {
+                    var /** @type {?} */ queriedPlayers = queriedElements.get(queriedInnerElements[j]);
+                    if (queriedPlayers && queriedPlayers.length) {
+                        players.push.apply(players, queriedPlayers);
+                    }
+                }
+            }
+            if (players.length) {
                 removeNodesAfterAnimationDone(this, element, players);
             }
             else {
-                var /** @type {?} */ details = (element[REMOVAL_FLAG]);
-                if (details && !details.hasAnimation) {
-                    this.processLeaveNode(element);
-                }
+                this.processLeaveNode(element);
             }
         }
+        // this is required so the cleanup method doesn't remove them
+        allLeaveNodes.length = 0;
         rootPlayers.forEach(function (player) {
             _this.players.push(player);
             player.onDone(function () {
@@ -56176,7 +56622,6 @@ var TransitionAnimationEngine = (function () {
             });
             player.play();
         });
-        allEnterNodes.forEach(function (element) { return removeClass(element, ENTER_CLASSNAME); });
         return rootPlayers;
     };
     /**
@@ -56298,19 +56743,13 @@ var TransitionAnimationEngine = (function () {
         var /** @type {?} */ allSubElements = new Set();
         var /** @type {?} */ allNewPlayers = instruction.timelines.map(function (timelineInstruction) {
             var /** @type {?} */ element = timelineInstruction.element;
+            allConsumedElements.add(element);
             // FIXME (matsko): make sure to-be-removed animations are removed properly
             var /** @type {?} */ details = element[REMOVAL_FLAG];
             if (details && details.removedBeforeQueried)
                 return new NoopAnimationPlayer();
             var /** @type {?} */ isQueriedElement = element !== rootElement;
-            var /** @type {?} */ previousPlayers = EMPTY_PLAYER_ARRAY;
-            if (!allConsumedElements.has(element)) {
-                allConsumedElements.add(element);
-                var /** @type {?} */ _previousPlayers = allPreviousPlayersMap.get(element);
-                if (_previousPlayers) {
-                    previousPlayers = _previousPlayers.map(function (p) { return p.getRealPlayer(); });
-                }
-            }
+            var /** @type {?} */ previousPlayers = flattenGroupPlayers((allPreviousPlayersMap.get(element) || EMPTY_PLAYER_ARRAY).map(function (p) { return p.getRealPlayer(); }));
             var /** @type {?} */ preStyles = preStylesMap.get(element);
             var /** @type {?} */ postStyles = postStylesMap.get(element);
             var /** @type {?} */ keyframes$$1 = normalizeKeyframes(_this.driver, _this._normalizer, element, timelineInstruction.keyframes, preStyles, postStyles);
@@ -56329,7 +56768,7 @@ var TransitionAnimationEngine = (function () {
         });
         allQueriedPlayers.forEach(function (player) {
             getOrSetAsInMap(_this.playersByQueriedElement, player.element, []).push(player);
-            player.onDone(function () { deleteOrUnsetInMap(_this.playersByQueriedElement, player.element, player); });
+            player.onDone(function () { return deleteOrUnsetInMap(_this.playersByQueriedElement, player.element, player); });
         });
         allConsumedElements.forEach(function (element) { return addClass(element, NG_ANIMATING_CLASSNAME); });
         var /** @type {?} */ player = optimizeGroupPlayer(allNewPlayers);
@@ -56577,68 +57016,6 @@ function cloakElement(element, value) {
 }
 /**
  * @param {?} driver
- * @param {?} rootElement
- * @param {?} selector
- * @return {?}
- */
-function filterNodeClasses(driver, rootElement, selector) {
-    var /** @type {?} */ rootElements = [];
-    if (!rootElement)
-        return rootElements;
-    var /** @type {?} */ cursor = rootElement;
-    var /** @type {?} */ nextCursor = {};
-    var /** @type {?} */ potentialCursorStack = [];
-    do {
-        // 1. query from root
-        nextCursor = cursor ? driver.query(cursor, selector, false)[0] : null;
-        // this is used to avoid the extra matchesElement call when we
-        // know that the element does match based it on being queried
-        var /** @type {?} */ justQueried = !!nextCursor;
-        if (!nextCursor) {
-            var /** @type {?} */ nextPotentialCursor = potentialCursorStack.pop();
-            if (nextPotentialCursor) {
-                // 1a)
-                nextCursor = nextPotentialCursor;
-            }
-            else {
-                cursor = cursor.parentElement;
-                // 1b)
-                if (!cursor)
-                    break;
-                // 1c)
-                nextCursor = cursor = cursor.nextElementSibling;
-                continue;
-            }
-        }
-        // 2. visit the next node
-        while (nextCursor) {
-            var /** @type {?} */ matches = justQueried || driver.matchesElement(nextCursor, selector);
-            justQueried = false;
-            var /** @type {?} */ nextPotentialCursor = nextCursor.nextElementSibling;
-            // 2a)
-            if (!matches) {
-                potentialCursorStack.push(nextPotentialCursor);
-                cursor = nextCursor;
-                break;
-            }
-            // 2b)
-            rootElements.push(nextCursor);
-            nextCursor = nextPotentialCursor;
-            if (nextCursor) {
-                cursor = nextCursor;
-            }
-            else {
-                cursor = cursor.parentElement;
-                if (!cursor)
-                    break;
-                nextCursor = cursor = cursor.nextElementSibling;
-            }
-        }
-    } while (nextCursor && nextCursor !== rootElement);
-    return rootElements;
-}
-/**
- * @param {?} driver
  * @param {?} elements
  * @param {?} elementPropsMap
  * @param {?} defaultStyle
@@ -56663,16 +57040,27 @@ function cloakAndComputeStyles(driver, elements, elementPropsMap, defaultStyle) 
     return valuesMap;
 }
 /**
- * @param {?} driver
- * @param {?} allEnterNodes
+ * @param {?} nodes
  * @return {?}
  */
-function collectEnterElements(driver, allEnterNodes) {
-    allEnterNodes.forEach(function (element) { return addClass(element, POTENTIAL_ENTER_CLASSNAME); });
-    var /** @type {?} */ enterNodes = filterNodeClasses(driver, getBodyNode(), POTENTIAL_ENTER_SELECTOR);
-    enterNodes.forEach(function (element) { return addClass(element, ENTER_CLASSNAME); });
-    allEnterNodes.forEach(function (element) { return removeClass(element, POTENTIAL_ENTER_CLASSNAME); });
-    return enterNodes;
+function createIsRootFilterFn(nodes) {
+    var /** @type {?} */ nodeSet = new Set(nodes);
+    var /** @type {?} */ knownRootContainer = new Set();
+    var /** @type {?} */ isRoot;
+    isRoot = function (node) {
+        if (!node)
+            return true;
+        if (nodeSet.has(node.parentNode))
+            return false;
+        if (knownRootContainer.has(node.parentNode))
+            return true;
+        if (isRoot(node.parentNode)) {
+            knownRootContainer.add(node);
+            return true;
+        }
+        return false;
+    };
+    return isRoot;
 }
 var CLASSES_CACHE_KEY = '$$classes';
 /**
@@ -56739,6 +57127,31 @@ function getBodyNode() {
  */
 function removeNodesAfterAnimationDone(engine, element, players) {
     optimizeGroupPlayer(players).onDone(function () { return engine.processLeaveNode(element); });
+}
+/**
+ * @param {?} players
+ * @return {?}
+ */
+function flattenGroupPlayers(players) {
+    var /** @type {?} */ finalPlayers = [];
+    _flattenGroupPlayersRecur(players, finalPlayers);
+    return finalPlayers;
+}
+/**
+ * @param {?} players
+ * @param {?} finalPlayers
+ * @return {?}
+ */
+function _flattenGroupPlayersRecur(players, finalPlayers) {
+    for (var /** @type {?} */ i = 0; i < players.length; i++) {
+        var /** @type {?} */ player = players[i];
+        if (player instanceof AnimationGroupPlayer) {
+            _flattenGroupPlayersRecur(player.players, finalPlayers);
+        }
+        else {
+            finalPlayers.push(/** @type {?} */ (player));
+        }
+    }
 }
 /**
  * @license
@@ -56819,21 +57232,29 @@ var AnimationEngine = (function () {
         this._transitionEngine.removeNode(namespaceId, element, context);
     };
     /**
+     * @param {?} element
+     * @param {?} disable
+     * @return {?}
+     */
+    AnimationEngine.prototype.disableAnimations = function (element, disable) {
+        this._transitionEngine.markElementAsDisabled(element, disable);
+    };
+    /**
      * @param {?} namespaceId
      * @param {?} element
      * @param {?} property
      * @param {?} value
      * @return {?}
      */
-    AnimationEngine.prototype.setProperty = function (namespaceId, element, property, value) {
-        // @@property
+    AnimationEngine.prototype.process = function (namespaceId, element, property, value) {
         if (property.charAt(0) == '@') {
             var _a = parseTimelineCommand(property), id = _a[0], action = _a[1];
             var /** @type {?} */ args = (value);
             this._timelineEngine.command(id, element, action, args);
-            return false;
         }
-        return this._transitionEngine.trigger(namespaceId, element, property, value);
+        else {
+            this._transitionEngine.trigger(namespaceId, element, property, value);
+        }
     };
     /**
      * @param {?} namespaceId
@@ -56906,15 +57327,17 @@ var WebAnimationsPlayer = (function () {
         this._destroyed = false;
         this.time = 0;
         this.parentPlayer = null;
+        this.previousStyles = {};
         this.currentSnapshot = {};
         this._duration = options['duration'];
         this._delay = options['delay'] || 0;
         this.time = this._duration + this._delay;
-        this.previousStyles = {};
-        previousPlayers.forEach(function (player) {
-            var styles = player.currentSnapshot;
-            Object.keys(styles).forEach(function (prop) { return _this.previousStyles[prop] = styles[prop]; });
-        });
+        if (allowPreviousPlayerStylesMerge(this._duration, this._delay)) {
+            previousPlayers.forEach(function (player) {
+                var styles = player.currentSnapshot;
+                Object.keys(styles).forEach(function (prop) { return _this.previousStyles[prop] = styles[prop]; });
+            });
+        }
     }
     /**
      * @return {?}
@@ -57200,7 +57623,7 @@ function supportsWebAnimations() {
 }
 
 /**
- * @license Angular v4.2.4
+ * @license Angular v4.3.1
  * (c) 2010-2017 Google, Inc. https://angular.io/
  * License: MIT
  */
@@ -57387,6 +57810,8 @@ function issueAnimationCommand(renderer, element, id, command, args) {
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
+var ANIMATION_PREFIX = '@';
+var DISABLE_ANIMATIONS_FLAG = '@.disabled';
 var AnimationRendererFactory = (function () {
     /**
      * @param {?} delegate
@@ -57401,6 +57826,7 @@ var AnimationRendererFactory = (function () {
         this._microtaskId = 1;
         this._animationCallbacksBuffer = [];
         this._rendererCache = new Map();
+        this._cdRecurDepth = 0;
         engine.onRemovalComplete = function (element, delegate) {
             // Note: if an component element has a leave animation, and the component
             // a host leave animation, the view engine will call `removeChild` for the parent
@@ -57443,6 +57869,7 @@ var AnimationRendererFactory = (function () {
      * @return {?}
      */
     AnimationRendererFactory.prototype.begin = function () {
+        this._cdRecurDepth++;
         if (this.delegate.begin) {
             this.delegate.begin();
         }
@@ -57484,10 +57911,15 @@ var AnimationRendererFactory = (function () {
      */
     AnimationRendererFactory.prototype.end = function () {
         var _this = this;
-        this._zone.runOutsideAngular(function () {
-            _this._scheduleCountTask();
-            _this.engine.flush(_this._microtaskId);
-        });
+        this._cdRecurDepth--;
+        // this is to prevent animations from running twice when an inner
+        // component does CD when a parent component insted has inserted it
+        if (this._cdRecurDepth == 0) {
+            this._zone.runOutsideAngular(function () {
+                _this._scheduleCountTask();
+                _this.engine.flush(_this._microtaskId);
+            });
+        }
         if (this.delegate.end) {
             this.delegate.end();
         }
@@ -57653,7 +58085,12 @@ var BaseAnimationRenderer = (function () {
      * @return {?}
      */
     BaseAnimationRenderer.prototype.setProperty = function (el, name, value) {
-        this.delegate.setProperty(el, name, value);
+        if (name.charAt(0) == ANIMATION_PREFIX && name == DISABLE_ANIMATIONS_FLAG) {
+            this.disableAnimations(el, !!value);
+        }
+        else {
+            this.delegate.setProperty(el, name, value);
+        }
     };
     /**
      * @param {?} node
@@ -57669,6 +58106,14 @@ var BaseAnimationRenderer = (function () {
      */
     BaseAnimationRenderer.prototype.listen = function (target, eventName, callback) {
         return this.delegate.listen(target, eventName, callback);
+    };
+    /**
+     * @param {?} element
+     * @param {?} value
+     * @return {?}
+     */
+    BaseAnimationRenderer.prototype.disableAnimations = function (element, value) {
+        this.engine.disableAnimations(element, value);
     };
     return BaseAnimationRenderer;
 }());
@@ -57693,9 +58138,13 @@ var AnimationRenderer = (function (_super) {
      * @return {?}
      */
     AnimationRenderer.prototype.setProperty = function (el, name, value) {
-        if (name.charAt(0) == '@') {
-            name = name.substr(1);
-            this.engine.setProperty(this.namespaceId, el, name, value);
+        if (name.charAt(0) == ANIMATION_PREFIX) {
+            if (name.charAt(1) == '.' && name == DISABLE_ANIMATIONS_FLAG) {
+                this.disableAnimations(el, !!value);
+            }
+            else {
+                this.engine.process(this.namespaceId, el, name.substr(1), value);
+            }
         }
         else {
             this.delegate.setProperty(el, name, value);
@@ -57709,11 +58158,13 @@ var AnimationRenderer = (function (_super) {
      */
     AnimationRenderer.prototype.listen = function (target, eventName, callback) {
         var _this = this;
-        if (eventName.charAt(0) == '@') {
+        if (eventName.charAt(0) == ANIMATION_PREFIX) {
             var /** @type {?} */ element = resolveElementFromTarget(target);
             var /** @type {?} */ name = eventName.substr(1);
             var /** @type {?} */ phase = '';
-            if (name.charAt(0) != '@') {
+            // @listener.phase is for trigger animation callbacks
+            // @@listener is for animation builder callbacks
+            if (name.charAt(0) != ANIMATION_PREFIX) {
                 _a = parseTriggerCallbackName(name), name = _a[0], phase = _a[1];
             }
             return this.engine.listen(this.namespaceId, element, name, phase, function (event) {
@@ -71756,8 +72207,7 @@ var AppComponent = (function () {
     AppComponent = __decorate([
         Component({
             selector: "my-app",
-            template: "<header class=\"page-header\">\n  <h1 class=\"headline\">The Local Paper</h1>\n  <nav>\n\n  </nav>\n\n</header>\n<section class=\"content\">\n  <router-outlet></router-outlet>\n</section>\n",
-            styles: ["body {\n  padding: 0 1%;\n  margin: 0;\n  font-family: \"Helvetica Neue\", \"Calibri Light\", Roboto, sans-serif;\n  font-size: 16px;\n}\n.datatable {\n  height: 70vh;\n}\n.datatable.material .datatable-header {\n  background-color: #4e9a06;\n}\n.datatable.material .datatable-header .datatable-header-cell {\n  color: #ffffff;\n}\n.datatable.material .datatable-header .datatable-header-cell.sort-active {\n  background-color: #73d216;\n}\na {\n  color: black;\n  text-decoration: none;\n}\na:visited {\n  color: black;\n}\n.headline {\n  font-size: 2em;\n  color: #00aa4f;\n  text-align: center;\n}\nnav {\n  text-align: center;\n}\nnav a {\n  border-left: 1px solid #b2cb7a;\n  color: black;\n  padding: 0.5em;\n  font-size: 1.2em;\n}\nnav a:first-of-type {\n  border-left: none;\n}\nnav a:hover {\n  text-decoration: underline;\n}\nnav .active {\n  font-weight: bold;\n}\n"]
+            template: "<header class=\"page-header\">\n  <h1 class=\"headline\">The Local Paper</h1>\n  <nav>\n\n  </nav>\n\n</header>\n<section class=\"content\">\n  <router-outlet></router-outlet>\n</section>\n"
         })
     ], AppComponent);
     return AppComponent;
@@ -71932,9 +72382,7 @@ var HomeComponent = (function () {
     HomeComponent = __decorate([
         Component({
             template: "<h2>Check out cool\n  <select class=\"category-select\" [ngModel]=\"selectedCategory\" (ngModelChange)=\"setCategory($event)\">\n    <option *ngFor=\"let category of categories\" [value]=\"category\">{{category}}</option>\n  </select>\n  in Toronto, Canada!\n</h2>\n<section class=\"today\">\n  <h3 class=\"date\">{{today}}</h3>\n  <section class=\"events-container\">\n    <sponsored-event [ad]=\"getAdAtIndex(0)\"></sponsored-event>\n    <ng-template ngFor let-event [ngForOf]=\"getFilteredEvents(events)\" let-i=\"index\">\n      <sponsored-event *ngIf=\"hasAdAtIndex(i)\" [ad]=\"getAdAtIndex(i)\"></sponsored-event>\n      <event-view [event]=\"event\" (afterClick)=\"eventClicked($event)\"></event-view>\n    </ng-template>\n  </section>\n  <section class=\"load-more\" *ngIf=\"!loadMoreButtonAlreadyClicked\">\n    <button class=\"load-more-button\" (click)=\"loadMoreButtonClick()\" >\n      Load More Events\n    </button>\n  </section>\n</section>\n\n<section class=\"more-events\">\n  <h3>More Events</h3>\n  <section class=\"events-container\">\n    <ng-template ngFor let-event [ngForOf]=\"getFilteredEvents(moreEvents)\">\n      <event-view [event]=\"event\"></event-view>\n    </ng-template>\n  </section>\n</section>\n",
-            styles: [".today {\n  float: left;\n  width: 75%;\n  flex-wrap: wrap;\n  padding: 1rem;\n  background-color: lightgray;\n}\n.more-events {\n  float: left;\n  width: 15%;\n  padding: 1rem;\n  border-top: 1px solid #86a09d;\n  flex-direction: column;\n}\n.more-events .events-container event-view {\n  width: 100px;\n}\n.more-events .events-container event-view .event-image {\n  width: 100px;\n  height: 100px;\n}\n.events-container {\n  display: flex;\n  flex-wrap: wrap;\n  justify-content: center;\n}\n.events-container event-view,\n.events-container sponsored-event {\n  display: flex;\n  flex-direction: column;\n  background-color: white;\n  height: 400px;\n  margin: 5px;\n  padding: 0;\n  width: 280px;\n}\n.events-container event-view {\n  animation: fadein 3s;\n}\n.category-select,\n.category-select:focus {\n  background: none;\n  border-top: none;\n  border-left: none;\n  border-right: none;\n  border-bottom: 1px solid black;\n  font-size: 1em;\n  font-weight: bold;\n  text-align: center;\n  outline: none;\n  padding-left: 1em;\n  padding-right: 0.5em;\n}\n.load-more {\n  width: 100%;\n  background-image: -moz-linear-gradient(top, rgba(255, 255, 255, 0) 0%, #ffffff 50%);\n  background-image: -webkit-linear-gradient(top, rgba(255, 255, 255, 0) 0%, #ffffff 50%);\n  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, #ffffff 50%);\n  text-align: center;\n  position: relative;\n  top: -300px;\n  padding-top: 260px;\n}\n.load-more-button {\n  background-color: #4e9a06;\n  border: 1px solid dimgray;\n  color: white;\n  padding: 1em;\n  margin: 1em;\n  font-weight: bold;\n  font-size: 1.5em;\n}\n@keyframes fadein {\n  from {\n    opacity: 0;\n  }\n  to {\n    opacity: 1;\n  }\n}\n"],
-            providers: [UniverseService, AnalyticsService],
-            encapsulation: ViewEncapsulation.None
+            providers: [UniverseService, AnalyticsService]
         }),
         __metadata("design:paramtypes", [UniverseService, AnalyticsService])
     ], HomeComponent);
@@ -71977,7 +72425,6 @@ var EventViewComponent = (function () {
         Component({
             selector: "event-view",
             template: "<a href=\"{{event.ticket_url}}\"\n   (click)=\"onClick()\"\n   target=\"_blank\">\n  <header class=\"event-info\">\n    <img class=\"event-image\" src=\"{{imageUrl}}\" />\n  </header>\n  <section class=\"event-more-info\">\n    <span class=\"event-title\">{{event.title}}</span>\n    at\n    <span class=\"event-location\">{{event.location}}</span>\n    <span div class=\"event-description\">\n      ({{event.formatted_duration}}).\n      <ng-template [ngIf]=\"!isFree\">\n        The price is {{event.formatted_price}}.\n      </ng-template>\n    </span>\n  </section>\n</a>\n",
-            styles: [".event-image {\n  border: 1px solid #c8e7ea;\n}\n.event-title {\n  color: #00aa4f;\n  font-weight: bold;\n  font-family: serif;\n  font-size: 1.1em;\n}\n.event-more-info {\n  color: #333333;\n  padding: 1em;\n  animation: fadein 2s;\n}\n.event-description {\n  font-size: 0.9em;\n}\n@keyframes fadein {\n  from {\n    opacity: 0;\n  }\n  to {\n    opacity: 1;\n  }\n}\n"],
             providers: [AnalyticsService],
             host: {
                 "class": "event-view"
@@ -72047,8 +72494,7 @@ var AdReportComponent = (function () {
         Component({
             selector: "ads-report",
             template: "<h1>Analytics Report</h1>\n<p>Table of analytics results:</p>\n<ngx-datatable #table\n   class=\"material\"\n   [rows]=\"rows\"\n   [columns]=\"columns\"\n   [loadingIndicator]=\"loading\"\n   [scrollbarV]=\"true\"\n   [rowHeight]=\"50\"\n   [headerHeight]=\"50\"\n   [footerHeight]=\"50\"\n   ></ngx-datatable>\n",
-            providers: [AnalyticsService],
-            styles: [".datatable {\n  width: 50%;\n}\n"]
+            providers: [AnalyticsService]
         }),
         __metadata("design:paramtypes", [AnalyticsService])
     ], AdReportComponent);
@@ -72158,7 +72604,7 @@ function View_ExampleFormComponent_2(_l) {
                 ad = (pd_3 && ad);
             }
             return ad;
-        }, null, null)), directiveDef(16384, null, 0, DefaultValueAccessor, [Renderer, ElementRef, [2, COMPOSITION_BUFFER_MODE]], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
+        }, null, null)), directiveDef(16384, null, 0, DefaultValueAccessor, [Renderer2, ElementRef, [2, COMPOSITION_BUFFER_MODE]], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
             return [p0_0];
         }, [DefaultValueAccessor]), directiveDef(671744, null, 0, FormControlName, [[3, ControlContainer], [8, null], [8, null], [2, NG_VALUE_ACCESSOR]], { name: [0, 'name'] }, null), providerDef(2048, null, NgControl, null, [FormControlName]), directiveDef(16384, null, 0, NgControlStatus, [NgControl], null, null), (_l()(), textDef(null, ['\n      '])), (_l()(), textDef(null, ['\n      '])), (_l()(), elementDef(0, null, null, 12, 'p', [], null, null, null, null, null)), (_l()(), textDef(null, ['\n        '])), (_l()(), elementDef(0, null, null, 9, 'label', [], null, null, null, null, null)),
         (_l()(), textDef(null, ['City:'])), (_l()(), elementDef(0, null, null, 0, 'br', [], null, null, null, null, null)), (_l()(), textDef(null, ['\n          '])), (_l()(),
@@ -72184,7 +72630,7 @@ function View_ExampleFormComponent_2(_l) {
                     ad = (pd_3 && ad);
                 }
                 return ad;
-            }, null, null)), directiveDef(16384, null, 0, DefaultValueAccessor, [Renderer, ElementRef, [2, COMPOSITION_BUFFER_MODE]], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
+            }, null, null)), directiveDef(16384, null, 0, DefaultValueAccessor, [Renderer2, ElementRef, [2, COMPOSITION_BUFFER_MODE]], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
             return [p0_0];
         }, [DefaultValueAccessor]), directiveDef(671744, null, 0, FormControlName, [[3, ControlContainer], [8, null], [8, null], [2, NG_VALUE_ACCESSOR]], { name: [0, 'name'] }, null), providerDef(2048, null, NgControl, null, [FormControlName]), directiveDef(16384, null, 0, NgControlStatus, [NgControl], null, null), (_l()(), textDef(null, ['\n      '])), (_l()(), textDef(null, ['\n    '])), (_l()(), textDef(null, ['\n  ']))], function (_ck, _v) {
         var currVal_7 = 'shippingAddress';
@@ -72264,7 +72710,7 @@ function View_ExampleFormComponent_0(_l) {
                 ad = (pd_3 && ad);
             }
             return ad;
-        }, null, null)), directiveDef(16384, null, 0, DefaultValueAccessor, [Renderer, ElementRef, [2, COMPOSITION_BUFFER_MODE]], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
+        }, null, null)), directiveDef(16384, null, 0, DefaultValueAccessor, [Renderer2, ElementRef, [2, COMPOSITION_BUFFER_MODE]], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
             return [p0_0];
         }, [DefaultValueAccessor]), directiveDef(671744, null, 0, FormControlName, [[3, ControlContainer], [8, null], [8, null], [2, NG_VALUE_ACCESSOR]], { name: [0, 'name'] }, null), providerDef(2048, null, NgControl, null, [FormControlName]), directiveDef(16384, null, 0, NgControlStatus, [NgControl], null, null), (_l()(), textDef(null, ['\n  '])), (_l()(), textDef(null, ['\n  '])), (_l()(), elementDef(0, null, null, 10, 'p', [], null, null, null, null, null)), (_l()(), textDef(null, ['\n    '])),
         (_l()(), elementDef(0, null, null, 7, 'label', [], null, null, null, null, null)), (_l()(), textDef(null, ['Last Name: '])), (_l()(), elementDef(0, null, null, 5, 'input', [['formControlName', 'lastName']], [[2, 'ng-untouched', null], [2, 'ng-touched',
@@ -72290,7 +72736,7 @@ function View_ExampleFormComponent_0(_l) {
                 ad = (pd_3 && ad);
             }
             return ad;
-        }, null, null)), directiveDef(16384, null, 0, DefaultValueAccessor, [Renderer, ElementRef, [2, COMPOSITION_BUFFER_MODE]], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
+        }, null, null)), directiveDef(16384, null, 0, DefaultValueAccessor, [Renderer2, ElementRef, [2, COMPOSITION_BUFFER_MODE]], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
             return [p0_0];
         }, [DefaultValueAccessor]), directiveDef(671744, null, 0, FormControlName, [[3, ControlContainer], [8, null], [8, null], [2, NG_VALUE_ACCESSOR]], { name: [0, 'name'] }, null), providerDef(2048, null, NgControl, null, [FormControlName]), directiveDef(16384, null, 0, NgControlStatus, [NgControl], null, null), (_l()(), textDef(null, ['\n  '])), (_l()(), textDef(null, ['\n  '])), (_l()(), elementDef(0, null, null, 11, 'p', [], null, null, null, null, null)), (_l()(), textDef(null, ['\n    '])),
         (_l()(), elementDef(0, null, null, 8, 'label', [], null, null, null, null, null)), (_l()(), textDef(null, ['\n      Is the shipping address the same as the billing address?\n      '])),
@@ -72315,7 +72761,7 @@ function View_ExampleFormComponent_0(_l) {
                 ad = (pd_2 && ad);
             }
             return ad;
-        }, null, null)), directiveDef(16384, null, 0, CheckboxControlValueAccessor, [Renderer, ElementRef], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
+        }, null, null)), directiveDef(16384, null, 0, CheckboxControlValueAccessor, [Renderer2, ElementRef], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
             return [p0_0];
         }, [CheckboxControlValueAccessor]), directiveDef(671744, null, 0, FormControlName, [[3, ControlContainer], [8, null], [8, null], [2, NG_VALUE_ACCESSOR]], { name: [0, 'name'] }, null), providerDef(2048, null, NgControl, null, [FormControlName]), directiveDef(16384, null, 0, NgControlStatus, [NgControl], null, null), (_l()(), textDef(null, ['\n    '])), (_l()(), textDef(null, ['\n  '])), (_l()(), textDef(null, ['\n  '])), (_l()(), elementDef(0, null, null, 1, 'h4', [], null, null, null, null, null)),
         (_l()(), textDef(null, ['Billing Address'])), (_l()(), textDef(null, ['\n  '])), (_l()(), elementDef(0, null, null, 32, 'div', [['formGroupName',
@@ -72348,7 +72794,7 @@ function View_ExampleFormComponent_0(_l) {
                 ad = (pd_3 && ad);
             }
             return ad;
-        }, null, null)), directiveDef(16384, null, 0, DefaultValueAccessor, [Renderer, ElementRef, [2, COMPOSITION_BUFFER_MODE]], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
+        }, null, null)), directiveDef(16384, null, 0, DefaultValueAccessor, [Renderer2, ElementRef, [2, COMPOSITION_BUFFER_MODE]], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
             return [p0_0];
         }, [DefaultValueAccessor]), directiveDef(671744, null, 0, FormControlName, [[3, ControlContainer], [8, null], [8, null], [2, NG_VALUE_ACCESSOR]], { name: [0, 'name'] }, null), providerDef(2048, null, NgControl, null, [FormControlName]), directiveDef(16384, null, 0, NgControlStatus, [NgControl], null, null), (_l()(), textDef(null, ['\n    '])), (_l()(), textDef(null, ['\n    '])), (_l()(), elementDef(0, null, null, 12, 'p', [], null, null, null, null, null)), (_l()(), textDef(null, ['\n      '])), (_l()(), elementDef(0, null, null, 9, 'label', [], null, null, null, null, null)),
         (_l()(), textDef(null, ['City:'])), (_l()(), elementDef(0, null, null, 0, 'br', [], null, null, null, null, null)), (_l()(), textDef(null, ['\n        '])), (_l()(), elementDef(0, null, null, 5, 'input', [['formControlName', 'city']], [[2, 'ng-untouched',
@@ -72375,7 +72821,7 @@ function View_ExampleFormComponent_0(_l) {
                 ad = (pd_3 && ad);
             }
             return ad;
-        }, null, null)), directiveDef(16384, null, 0, DefaultValueAccessor, [Renderer, ElementRef, [2, COMPOSITION_BUFFER_MODE]], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
+        }, null, null)), directiveDef(16384, null, 0, DefaultValueAccessor, [Renderer2, ElementRef, [2, COMPOSITION_BUFFER_MODE]], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
             return [p0_0];
         }, [DefaultValueAccessor]), directiveDef(671744, null, 0, FormControlName, [[3, ControlContainer], [8, null], [8, null], [2, NG_VALUE_ACCESSOR]], { name: [0, 'name'] }, null), providerDef(2048, null, NgControl, null, [FormControlName]), directiveDef(16384, null, 0, NgControlStatus, [NgControl], null, null), (_l()(), textDef(null, ['\n    '])), (_l()(), textDef(null, ['\n  '])), (_l()(), textDef(null, ['\n  '])), (_l()(), elementDef(0, null, null, 1, 'h4', [], null, null, null, null, null)),
         (_l()(), textDef(null, ['Shipping Address'])), (_l()(), textDef(null, ['\n  '])), (_l()(), anchorDef(16777216, null, null, 1, null, View_ExampleFormComponent_1)), directiveDef(16384, null, 0, NgIf, [ViewContainerRef,
@@ -72499,14 +72945,6 @@ var ExampleComponentNgFactory = createComponentFactory('ng-component', ExampleCo
  * @suppress {suspiciousCode,uselessCode,missingProperties,missingOverride}
  */
 /* tslint:disable */
-var styles = ['.today {\n    float: left;\n    width: 75%;\n    flex-wrap: wrap;\n    padding: 1rem;\n    background-color: lightgray;\n}\n\n.more-events {\n    float: left;\n    width: 15%;\n    padding: 1rem;\n    border-top: 1px solid #86a09d;\n    flex-direction: column;\n\n    .events-container {\n        event-view {\n            width: 100px;\n\n            .event-image {\n                width: 100px;\n                height: 100px;\n            }\n        }\n    }\n}\n\n.events-container {\n    display: flex;\n    flex-wrap: wrap;\n    justify-content: center;\n\n    event-view,\n    sponsored-event {\n        display: flex;\n        flex-direction: column;\n        background-color: white;\n        height: 400px;\n        margin: 5px;\n        padding: 0;\n        width: 280px;\n    }\n\n    event-view {\n        animation: fadein 3s;\n    }\n}\n\n.category-select,\n.category-select:focus {\n    background: none;\n    border-top: none;\n    border-left: none;\n    border-right: none;\n    border-bottom: 1px solid black;\n    font-size: 1em;\n    font-weight: bold;\n    text-align: center;\n    outline: none;\n    padding-left: 1em;\n    padding-right: 0.5em;\n}\n\n.load-more {\n    width: 100%;\n    background-image: -moz-linear-gradient(top, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 50%);\n    background-image: -webkit-linear-gradient(top, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 50%);\n    background-image: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 50%);\n    text-align: center;\n    position: relative;\n    top: -300px;\n    padding-top: 260px;\n}\n\n.load-more-button {\n    background-color: #4e9a06;\n    border: 1px solid dimgray;\n    color: white;\n    padding: 1em;\n    margin: 1em;\n    font-weight: bold;\n    font-size: 1.5em;\n}\n\n@keyframes fadein {\n    from { opacity: 0; }\n    to { opacity: 1; }\n}\n'];
-
-/**
- * @fileoverview This file is generated by the Angular template compiler.
- * Do not edit.
- * @suppress {suspiciousCode,uselessCode,missingProperties,missingOverride}
- */
-/* tslint:disable */
 var styles_AdViewComponent = [];
 var RenderType_AdViewComponent = createRendererType2({ encapsulation: 2,
     styles: styles_AdViewComponent, data: {} });
@@ -72544,16 +72982,8 @@ var AdViewComponentNgFactory = createComponentFactory('sponsored-event', AdViewC
  * @suppress {suspiciousCode,uselessCode,missingProperties,missingOverride}
  */
 /* tslint:disable */
-var styles$1 = ['.event-image[_ngcontent-%COMP%] {\n    border: 1px solid #c8e7ea;\n}\n\n.event-title[_ngcontent-%COMP%] {\n    color: #00aa4f;\n    font-weight: bold;\n    font-family: serif;\n    font-size: 1.1em;\n}\n\n.event-more-info[_ngcontent-%COMP%] {\n    color: #333333;\n    padding: 1em;\n    animation: fadein 2s;\n}\n\n.event-description[_ngcontent-%COMP%] {\n    font-size: 0.9em;\n}\n\n@keyframes fadein {\n    from { opacity: 0; }\n    to { opacity: 1; }\n}'];
-
-/**
- * @fileoverview This file is generated by the Angular template compiler.
- * Do not edit.
- * @suppress {suspiciousCode,uselessCode,missingProperties,missingOverride}
- */
-/* tslint:disable */
-var styles_EventViewComponent = [styles$1];
-var RenderType_EventViewComponent = createRendererType2({ encapsulation: 0,
+var styles_EventViewComponent = [];
+var RenderType_EventViewComponent = createRendererType2({ encapsulation: 2,
     styles: styles_EventViewComponent, data: {} });
 function View_EventViewComponent_1(_l) {
     return viewDef(0, [(_l()(), textDef(null, ['\n        The price is ', '.\n      ']))], null, function (_ck, _v) {
@@ -72610,12 +73040,12 @@ var EventViewComponentNgFactory = createComponentFactory('event-view', EventView
  * @suppress {suspiciousCode,uselessCode,missingProperties,missingOverride}
  */
 /* tslint:disable */
-var styles_HomeComponent = [styles];
+var styles_HomeComponent = [];
 var RenderType_HomeComponent = createRendererType2({ encapsulation: 2,
     styles: styles_HomeComponent, data: {} });
 function View_HomeComponent_1(_l) {
-    return viewDef(0, [(_l()(), elementDef(0, null, null, 3, 'option', [], null, null, null, null, null)), directiveDef(147456, null, 0, NgSelectOption, [ElementRef, Renderer, [2, SelectControlValueAccessor]], { value: [0, 'value'] }, null), directiveDef(147456, null, 0, NgSelectMultipleOption, [ElementRef,
-            Renderer, [8, null]], { value: [0, 'value'] }, null), (_l()(), textDef(null, ['', '']))], function (_ck, _v) {
+    return viewDef(0, [(_l()(), elementDef(0, null, null, 3, 'option', [], null, null, null, null, null)), directiveDef(147456, null, 0, NgSelectOption, [ElementRef, Renderer2, [2, SelectControlValueAccessor]], { value: [0, 'value'] }, null), directiveDef(147456, null, 0, NgSelectMultipleOption, [ElementRef,
+            Renderer2, [8, null]], { value: [0, 'value'] }, null), (_l()(), textDef(null, ['', '']))], function (_ck, _v) {
         var currVal_0 = _v.context.$implicit;
         _ck(_v, 1, 0, currVal_0);
         var currVal_1 = _v.context.$implicit;
@@ -72695,7 +73125,7 @@ function View_HomeComponent_0(_l) {
                 ad = (pd_2 && ad);
             }
             return ad;
-        }, null, null)), directiveDef(16384, null, 0, SelectControlValueAccessor, [Renderer, ElementRef], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
+        }, null, null)), directiveDef(16384, null, 0, SelectControlValueAccessor, [Renderer2, ElementRef], null, null), providerDef(1024, null, NG_VALUE_ACCESSOR, function (p0_0) {
             return [p0_0];
         }, [SelectControlValueAccessor]), directiveDef(671744, null, 0, NgModel, [[8, null], [8, null], [8, null], [2, NG_VALUE_ACCESSOR]], { model: [0, 'model'] }, { update: 'ngModelChange' }), providerDef(2048, null, NgControl, null, [NgModel]), directiveDef(16384, null, 0, NgControlStatus, [NgControl], null, null), (_l()(), textDef(null, ['\n    '])),
         (_l()(), anchorDef(16777216, null, null, 1, null, View_HomeComponent_1)),
@@ -72753,15 +73183,7 @@ var HomeComponentNgFactory = createComponentFactory('ng-component', HomeComponen
  * @suppress {suspiciousCode,uselessCode,missingProperties,missingOverride}
  */
 /* tslint:disable */
-var styles$2 = ['.datatable[_ngcontent-%COMP%] {\n    width: 50%;\n}'];
-
-/**
- * @fileoverview This file is generated by the Angular template compiler.
- * Do not edit.
- * @suppress {suspiciousCode,uselessCode,missingProperties,missingOverride}
- */
-/* tslint:disable */
-var styles$3 = ['.ngx-datatable {\n  display: block;\n  overflow: hidden;\n  justify-content: center;\n  position: relative;\n  -webkit-transform: translate3d(0, 0, 0);\n  /**\n   * Vertical Scrolling Adjustments\n   */\n  /**\n   * Horizontal Scrolling Adjustments\n   */\n  /**\n   * Fixed Header Height Adjustments\n   */\n  /**\n   * Fixed row height adjustments\n   */\n  /**\n   * Shared Styles\n   */\n  /**\n   * Header Styles\n   */\n  /**\n   * Body Styles\n   */\n  /**\n   * Footer Styles\n   */ }\n  .ngx-datatable [hidden] {\n    display: none !important; }\n  .ngx-datatable *, .ngx-datatable *:before, .ngx-datatable *:after {\n    -moz-box-sizing: border-box;\n    -webkit-box-sizing: border-box;\n    box-sizing: border-box; }\n  .ngx-datatable.scroll-vertical .datatable-body {\n    overflow-y: auto; }\n    .ngx-datatable.scroll-vertical .datatable-body .datatable-row-wrapper {\n      position: absolute; }\n  .ngx-datatable.scroll-horz .datatable-body {\n    overflow-x: auto;\n    -webkit-overflow-scrolling: touch; }\n  .ngx-datatable.fixed-header .datatable-header .datatable-header-inner {\n    white-space: nowrap; }\n    .ngx-datatable.fixed-header .datatable-header .datatable-header-inner .datatable-header-cell {\n      white-space: nowrap;\n      overflow: hidden;\n      text-overflow: ellipsis; }\n  .ngx-datatable.fixed-row .datatable-scroll {\n    white-space: nowrap; }\n    .ngx-datatable.fixed-row .datatable-scroll .datatable-body-row {\n      white-space: nowrap; }\n      .ngx-datatable.fixed-row .datatable-scroll .datatable-body-row .datatable-body-cell {\n        overflow: hidden;\n        white-space: nowrap;\n        text-overflow: ellipsis; }\n  .ngx-datatable .datatable-body-row,\n  .ngx-datatable .datatable-header-inner {\n    display: -webkit-box;\n    display: -moz-box;\n    display: -ms-flexbox;\n    display: -webkit-flex;\n    display: flex;\n    flex-direction: row;\n    -webkit-flex-flow: row;\n    -moz-flex-flow: row;\n    -ms-flex-flow: row;\n    -o-flex-flow: row;\n    flex-flow: row; }\n  .ngx-datatable .datatable-body-cell,\n  .ngx-datatable .datatable-header-cell {\n    vertical-align: top;\n    display: inline-block;\n    line-height: 1.625;\n    -webkit-user-select: none;\n    -moz-user-select: none;\n    -ms-user-select: none;\n    -o-user-select: none;\n    user-select: none; }\n    .ngx-datatable .datatable-body-cell:focus,\n    .ngx-datatable .datatable-header-cell:focus {\n      outline: none; }\n  .ngx-datatable .datatable-row-left,\n  .ngx-datatable .datatable-row-right {\n    z-index: 9; }\n  .ngx-datatable .datatable-row-left,\n  .ngx-datatable .datatable-row-center,\n  .ngx-datatable .datatable-row-right {\n    position: relative; }\n  .ngx-datatable .datatable-header {\n    display: block;\n    overflow: hidden; }\n    .ngx-datatable .datatable-header .datatable-header-inner {\n      align-items: stretch;\n      -webkit-align-items: stretch; }\n    .ngx-datatable .datatable-header .datatable-header-cell {\n      position: relative;\n      display: inline-block; }\n      .ngx-datatable .datatable-header .datatable-header-cell .datatable-header-cell-wrapper {\n        cursor: pointer; }\n      .ngx-datatable .datatable-header .datatable-header-cell.longpress .datatable-header-cell-wrapper {\n        cursor: move; }\n      .ngx-datatable .datatable-header .datatable-header-cell .sort-btn {\n        line-height: 100%;\n        vertical-align: middle;\n        display: inline-block;\n        cursor: pointer; }\n      .ngx-datatable .datatable-header .datatable-header-cell .resize-handle {\n        display: inline-block;\n        position: absolute;\n        right: 0;\n        top: 0;\n        bottom: 0;\n        width: 5px;\n        padding: 0 4px;\n        visibility: hidden;\n        cursor: ew-resize; }\n      .ngx-datatable .datatable-header .datatable-header-cell.resizeable:hover .resize-handle {\n        visibility: visible; }\n  .ngx-datatable .datatable-body {\n    position: relative;\n    z-index: 10;\n    display: block; }\n    .ngx-datatable .datatable-body .datatable-scroll {\n      display: inline-block; }\n    .ngx-datatable .datatable-body .datatable-row-detail {\n      overflow-y: hidden; }\n    .ngx-datatable .datatable-body .datatable-row-wrapper {\n      display: -webkit-box;\n      display: -moz-box;\n      display: -ms-flexbox;\n      display: -webkit-flex;\n      display: flex;\n      -webkit-box-orient: vertical;\n      -webkit-box-direction: normal;\n      -webkit-flex-direction: column;\n      -moz-box-orient: vertical;\n      -moz-box-direction: normal;\n      -ms-flex-direction: column;\n      flex-direction: column; }\n    .ngx-datatable .datatable-body .datatable-body-row {\n      outline: none; }\n      .ngx-datatable .datatable-body .datatable-body-row > div {\n        display: -webkit-box;\n        display: -moz-box;\n        display: -ms-flexbox;\n        display: -webkit-flex;\n        display: flex; }\n  .ngx-datatable .datatable-footer {\n    display: block;\n    width: 100%; }\n    .ngx-datatable .datatable-footer .datatable-footer-inner {\n      display: flex;\n      align-items: center;\n      width: 100%; }\n    .ngx-datatable .datatable-footer .selected-count .page-count {\n      flex: 1 1 40%; }\n    .ngx-datatable .datatable-footer .selected-count .datatable-pager {\n      flex: 1 1 60%; }\n    .ngx-datatable .datatable-footer .page-count {\n      flex: 1 1 20%; }\n    .ngx-datatable .datatable-footer .datatable-pager {\n      flex: 1 1 80%;\n      text-align: right; }\n      .ngx-datatable .datatable-footer .datatable-pager .pager,\n      .ngx-datatable .datatable-footer .datatable-pager .pager li {\n        padding: 0;\n        margin: 0;\n        display: inline-block;\n        list-style: none; }\n      .ngx-datatable .datatable-footer .datatable-pager .pager li, .ngx-datatable .datatable-footer .datatable-pager .pager li a {\n        outline: none; }\n      .ngx-datatable .datatable-footer .datatable-pager .pager li a {\n        cursor: pointer;\n        display: inline-block; }\n      .ngx-datatable .datatable-footer .datatable-pager .pager li.disabled a {\n        cursor: not-allowed; }\n'];
+var styles = ['.ngx-datatable {\n  display: block;\n  overflow: hidden;\n  justify-content: center;\n  position: relative;\n  -webkit-transform: translate3d(0, 0, 0);\n  /**\n   * Vertical Scrolling Adjustments\n   */\n  /**\n   * Horizontal Scrolling Adjustments\n   */\n  /**\n   * Fixed Header Height Adjustments\n   */\n  /**\n   * Fixed row height adjustments\n   */\n  /**\n   * Shared Styles\n   */\n  /**\n   * Header Styles\n   */\n  /**\n   * Body Styles\n   */\n  /**\n   * Footer Styles\n   */ }\n  .ngx-datatable [hidden] {\n    display: none !important; }\n  .ngx-datatable *, .ngx-datatable *:before, .ngx-datatable *:after {\n    -moz-box-sizing: border-box;\n    -webkit-box-sizing: border-box;\n    box-sizing: border-box; }\n  .ngx-datatable.scroll-vertical .datatable-body {\n    overflow-y: auto; }\n    .ngx-datatable.scroll-vertical .datatable-body .datatable-row-wrapper {\n      position: absolute; }\n  .ngx-datatable.scroll-horz .datatable-body {\n    overflow-x: auto;\n    -webkit-overflow-scrolling: touch; }\n  .ngx-datatable.fixed-header .datatable-header .datatable-header-inner {\n    white-space: nowrap; }\n    .ngx-datatable.fixed-header .datatable-header .datatable-header-inner .datatable-header-cell {\n      white-space: nowrap;\n      overflow: hidden;\n      text-overflow: ellipsis; }\n  .ngx-datatable.fixed-row .datatable-scroll {\n    white-space: nowrap; }\n    .ngx-datatable.fixed-row .datatable-scroll .datatable-body-row {\n      white-space: nowrap; }\n      .ngx-datatable.fixed-row .datatable-scroll .datatable-body-row .datatable-body-cell {\n        overflow: hidden;\n        white-space: nowrap;\n        text-overflow: ellipsis; }\n  .ngx-datatable .datatable-body-row,\n  .ngx-datatable .datatable-header-inner {\n    display: -webkit-box;\n    display: -moz-box;\n    display: -ms-flexbox;\n    display: -webkit-flex;\n    display: flex;\n    flex-direction: row;\n    -webkit-flex-flow: row;\n    -moz-flex-flow: row;\n    -ms-flex-flow: row;\n    -o-flex-flow: row;\n    flex-flow: row; }\n  .ngx-datatable .datatable-body-cell,\n  .ngx-datatable .datatable-header-cell {\n    vertical-align: top;\n    display: inline-block;\n    line-height: 1.625;\n    -webkit-user-select: none;\n    -moz-user-select: none;\n    -ms-user-select: none;\n    -o-user-select: none;\n    user-select: none; }\n    .ngx-datatable .datatable-body-cell:focus,\n    .ngx-datatable .datatable-header-cell:focus {\n      outline: none; }\n  .ngx-datatable .datatable-row-left,\n  .ngx-datatable .datatable-row-right {\n    z-index: 9; }\n  .ngx-datatable .datatable-row-left,\n  .ngx-datatable .datatable-row-center,\n  .ngx-datatable .datatable-row-right {\n    position: relative; }\n  .ngx-datatable .datatable-header {\n    display: block;\n    overflow: hidden; }\n    .ngx-datatable .datatable-header .datatable-header-inner {\n      align-items: stretch;\n      -webkit-align-items: stretch; }\n    .ngx-datatable .datatable-header .datatable-header-cell {\n      position: relative;\n      display: inline-block; }\n      .ngx-datatable .datatable-header .datatable-header-cell .datatable-header-cell-wrapper {\n        cursor: pointer; }\n      .ngx-datatable .datatable-header .datatable-header-cell.longpress .datatable-header-cell-wrapper {\n        cursor: move; }\n      .ngx-datatable .datatable-header .datatable-header-cell .sort-btn {\n        line-height: 100%;\n        vertical-align: middle;\n        display: inline-block;\n        cursor: pointer; }\n      .ngx-datatable .datatable-header .datatable-header-cell .resize-handle {\n        display: inline-block;\n        position: absolute;\n        right: 0;\n        top: 0;\n        bottom: 0;\n        width: 5px;\n        padding: 0 4px;\n        visibility: hidden;\n        cursor: ew-resize; }\n      .ngx-datatable .datatable-header .datatable-header-cell.resizeable:hover .resize-handle {\n        visibility: visible; }\n  .ngx-datatable .datatable-body {\n    position: relative;\n    z-index: 10;\n    display: block; }\n    .ngx-datatable .datatable-body .datatable-scroll {\n      display: inline-block; }\n    .ngx-datatable .datatable-body .datatable-row-detail {\n      overflow-y: hidden; }\n    .ngx-datatable .datatable-body .datatable-row-wrapper {\n      display: -webkit-box;\n      display: -moz-box;\n      display: -ms-flexbox;\n      display: -webkit-flex;\n      display: flex;\n      -webkit-box-orient: vertical;\n      -webkit-box-direction: normal;\n      -webkit-flex-direction: column;\n      -moz-box-orient: vertical;\n      -moz-box-direction: normal;\n      -ms-flex-direction: column;\n      flex-direction: column; }\n    .ngx-datatable .datatable-body .datatable-body-row {\n      outline: none; }\n      .ngx-datatable .datatable-body .datatable-body-row > div {\n        display: -webkit-box;\n        display: -moz-box;\n        display: -ms-flexbox;\n        display: -webkit-flex;\n        display: flex; }\n  .ngx-datatable .datatable-footer {\n    display: block;\n    width: 100%; }\n    .ngx-datatable .datatable-footer .datatable-footer-inner {\n      display: flex;\n      align-items: center;\n      width: 100%; }\n    .ngx-datatable .datatable-footer .selected-count .page-count {\n      flex: 1 1 40%; }\n    .ngx-datatable .datatable-footer .selected-count .datatable-pager {\n      flex: 1 1 60%; }\n    .ngx-datatable .datatable-footer .page-count {\n      flex: 1 1 20%; }\n    .ngx-datatable .datatable-footer .datatable-pager {\n      flex: 1 1 80%;\n      text-align: right; }\n      .ngx-datatable .datatable-footer .datatable-pager .pager,\n      .ngx-datatable .datatable-footer .datatable-pager .pager li {\n        padding: 0;\n        margin: 0;\n        display: inline-block;\n        list-style: none; }\n      .ngx-datatable .datatable-footer .datatable-pager .pager li, .ngx-datatable .datatable-footer .datatable-pager .pager li a {\n        outline: none; }\n      .ngx-datatable .datatable-footer .datatable-pager .pager li a {\n        cursor: pointer;\n        display: inline-block; }\n      .ngx-datatable .datatable-footer .datatable-pager .pager li.disabled a {\n        cursor: not-allowed; }\n'];
 
 var columnMode_type = createCommonjsModule(function (module, exports) {
 "use strict";
@@ -73288,13 +73710,13 @@ var prefixes = createCommonjsModule(function (module, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 
 var cache = {};
-var testStyle = document !== undefined ? document.createElement('div').style : undefined;
+var testStyle = typeof document !== 'undefined' ? document.createElement('div').style : undefined;
 // Get Prefix
 // http://davidwalsh.name/vendor-prefix
 var prefix = (function () {
-    var styles = window !== undefined ? window.getComputedStyle(document.documentElement, '') : undefined;
-    var pre = styles !== undefined ? (Array.prototype.slice.call(styles).join('').match(/-(moz|webkit|ms)-/))[1] : undefined;
-    var dom = pre !== undefined ? ('WebKit|Moz|MS|O').match(new RegExp('(' + pre + ')', 'i'))[1] : undefined;
+    var styles = typeof window !== 'undefined' ? window.getComputedStyle(document.documentElement, '') : undefined;
+    var pre = typeof styles !== 'undefined' ? (Array.prototype.slice.call(styles).join('').match(/-(moz|webkit|ms)-/))[1] : undefined;
+    var dom = typeof pre !== 'undefined' ? ('WebKit|Moz|MS|O').match(new RegExp('(' + pre + ')', 'i'))[1] : undefined;
     return dom ? {
         dom: dom,
         lowercase: pre,
@@ -73371,14 +73793,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 // browser detection and prefixing tools
-var transform = prefixes.getVendorPrefixedName('transform');
-var backfaceVisibility = prefixes.getVendorPrefixedName('backfaceVisibility');
-var hasCSSTransforms = !!prefixes.getVendorPrefixedName('transform');
-var hasCSS3DTransforms = !!prefixes.getVendorPrefixedName('perspective');
-var ua = window ? window.navigator.userAgent : "Chrome";
+var transform = typeof window !== 'undefined' ? prefixes.getVendorPrefixedName('transform') : undefined;
+var backfaceVisibility = typeof window !== 'undefined' ? prefixes.getVendorPrefixedName('backfaceVisibility') : undefined;
+var hasCSSTransforms = typeof window !== 'undefined' ? !!prefixes.getVendorPrefixedName('transform') : undefined;
+var hasCSS3DTransforms = typeof window !== 'undefined' ? !!prefixes.getVendorPrefixedName('perspective') : undefined;
+var ua = typeof window !== 'undefined' ? window.navigator.userAgent : "Chrome";
 var isSafari = (/Safari\//).test(ua) && !(/Chrome\//).test(ua);
 function translateXY(styles, x, y) {
-    if (hasCSSTransforms) {
+    if (typeof transform !== 'undefined' && hasCSSTransforms) {
         if (!isSafari && hasCSS3DTransforms) {
             styles[transform] = "translate3d(" + x + "px, " + y + "px, 0)";
             styles[backfaceVisibility] = 'hidden';
@@ -73838,7 +74260,7 @@ exports.translateTemplates = translateTemplates;
 var elmFromPoint = createCommonjsModule(function (module, exports) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-if (document !== undefined && !document.elementsFromPoint) {
+if (typeof document !== 'undefined' && !document.elementsFromPoint) {
     document.elementsFromPoint = elementsFromPoint;
 }
 /*tslint:disable*/
@@ -73880,7 +74302,7 @@ function elementsFromPoint(x, y) {
     return elements;
 }
 exports.elementsFromPoint = elementsFromPoint;
-/*tslint:enable*/
+/*tslint:enable*/ 
 
 });
 
@@ -74042,38 +74464,38 @@ var DataTableHeaderCellComponent = (function () {
             return "sort-btn";
         }
     };
+    DataTableHeaderCellComponent.decorators = [
+        { type: core_1.Component, args: [{
+                    selector: 'datatable-header-cell',
+                    template: "\n    <div>\n      <label\n        *ngIf=\"isCheckboxable\" \n        class=\"datatable-checkbox\">\n        <input \n          type=\"checkbox\"\n          [checked]=\"allRowsSelected\"\n          (change)=\"select.emit(!allRowsSelected)\" \n        />\n      </label>\n      <span \n        *ngIf=\"!column.headerTemplate\"\n        class=\"datatable-header-cell-wrapper\">\n        <span\n          class=\"datatable-header-cell-label draggable\"\n          (click)=\"onSort()\"\n          [innerHTML]=\"name\">\n        </span>\n      </span>\n      <ng-template\n        *ngIf=\"column.headerTemplate\"\n        [ngTemplateOutlet]=\"column.headerTemplate\"\n        [ngOutletContext]=\"{ \n          column: column, \n          sortDir: sortDir,\n          sortFn: sortFn,\n          allRowsSelected: allRowsSelected,\n          selectFn: selectFn\n        }\">\n      </ng-template>\n      <span\n        (click)=\"onSort()\"\n        [class]=\"sortClass\">\n      </span>\n    </div>\n  ",
+                    host: {
+                        class: 'datatable-header-cell'
+                    }
+                },] },
+    ];
+    /** @nocollapse */
+    DataTableHeaderCellComponent.ctorParameters = function () { return []; };
+    DataTableHeaderCellComponent.propDecorators = {
+        'sortType': [{ type: core_1.Input },],
+        'column': [{ type: core_1.Input },],
+        'sortAscendingIcon': [{ type: core_1.Input },],
+        'sortDescendingIcon': [{ type: core_1.Input },],
+        'allRowsSelected': [{ type: core_1.Input },],
+        'selectionType': [{ type: core_1.Input },],
+        'headerHeight': [{ type: core_1.HostBinding, args: ['style.height.px',] }, { type: core_1.Input },],
+        'sorts': [{ type: core_1.Input },],
+        'sort': [{ type: core_1.Output },],
+        'select': [{ type: core_1.Output },],
+        'columnContextmenu': [{ type: core_1.Output },],
+        'columnCssClasses': [{ type: core_1.HostBinding, args: ['class',] },],
+        'name': [{ type: core_1.HostBinding, args: ['attr.title',] },],
+        'minWidth': [{ type: core_1.HostBinding, args: ['style.minWidth.px',] },],
+        'maxWidth': [{ type: core_1.HostBinding, args: ['style.maxWidth.px',] },],
+        'width': [{ type: core_1.HostBinding, args: ['style.width.px',] },],
+        'onContextmenu': [{ type: core_1.HostListener, args: ['contextmenu', ['$event'],] },],
+    };
     return DataTableHeaderCellComponent;
 }());
-DataTableHeaderCellComponent.decorators = [
-    { type: core_1.Component, args: [{
-                selector: 'datatable-header-cell',
-                template: "\n    <div>\n      <label\n        *ngIf=\"isCheckboxable\" \n        class=\"datatable-checkbox\">\n        <input \n          type=\"checkbox\"\n          [checked]=\"allRowsSelected\"\n          (change)=\"select.emit(!allRowsSelected)\" \n        />\n      </label>\n      <span \n        *ngIf=\"!column.headerTemplate\"\n        class=\"datatable-header-cell-wrapper\">\n        <span\n          class=\"datatable-header-cell-label draggable\"\n          (click)=\"onSort()\"\n          [innerHTML]=\"name\">\n        </span>\n      </span>\n      <ng-template\n        *ngIf=\"column.headerTemplate\"\n        [ngTemplateOutlet]=\"column.headerTemplate\"\n        [ngOutletContext]=\"{ \n          column: column, \n          sortDir: sortDir,\n          sortFn: sortFn,\n          allRowsSelected: allRowsSelected,\n          selectFn: selectFn\n        }\">\n      </ng-template>\n      <span\n        (click)=\"onSort()\"\n        [class]=\"sortClass\">\n      </span>\n    </div>\n  ",
-                host: {
-                    class: 'datatable-header-cell'
-                }
-            },] },
-];
-/** @nocollapse */
-DataTableHeaderCellComponent.ctorParameters = function () { return []; };
-DataTableHeaderCellComponent.propDecorators = {
-    'sortType': [{ type: core_1.Input },],
-    'column': [{ type: core_1.Input },],
-    'sortAscendingIcon': [{ type: core_1.Input },],
-    'sortDescendingIcon': [{ type: core_1.Input },],
-    'allRowsSelected': [{ type: core_1.Input },],
-    'selectionType': [{ type: core_1.Input },],
-    'headerHeight': [{ type: core_1.HostBinding, args: ['style.height.px',] }, { type: core_1.Input },],
-    'sorts': [{ type: core_1.Input },],
-    'sort': [{ type: core_1.Output },],
-    'select': [{ type: core_1.Output },],
-    'columnContextmenu': [{ type: core_1.Output },],
-    'columnCssClasses': [{ type: core_1.HostBinding, args: ['class',] },],
-    'name': [{ type: core_1.HostBinding, args: ['attr.title',] },],
-    'minWidth': [{ type: core_1.HostBinding, args: ['style.minWidth.px',] },],
-    'maxWidth': [{ type: core_1.HostBinding, args: ['style.maxWidth.px',] },],
-    'width': [{ type: core_1.HostBinding, args: ['style.width.px',] },],
-    'onContextmenu': [{ type: core_1.HostListener, args: ['contextmenu', ['$event'],] },],
-};
 exports.DataTableHeaderCellComponent = DataTableHeaderCellComponent;
 
 });
@@ -74128,8 +74550,8 @@ function View_DataTableHeaderCellComponent_4(_l) {
 }
 function View_DataTableHeaderCellComponent_3(_l) {
     return viewDef(0, [(_l()(), anchorDef(16777216, null, null, 2, null, View_DataTableHeaderCellComponent_4)), directiveDef(540672, null, 0, NgTemplateOutlet, [ViewContainerRef], { ngTemplateOutlet: [0, 'ngTemplateOutlet'], ngOutletContext: [1,
-                'ngOutletContext'] }, null), pureObjectDef(['column', 'sortDir', 'sortFn',
-            'allRowsSelected', 'selectFn']), (_l()(), anchorDef(0, null, null, 0))], function (_ck, _v) {
+                'ngOutletContext'] }, null), pureObjectDef({ column: 0, sortDir: 1, sortFn: 2,
+            allRowsSelected: 3, selectFn: 4 }), (_l()(), anchorDef(0, null, null, 0))], function (_ck, _v) {
         var _co = _v.component;
         var currVal_0 = _co.column.headerTemplate;
         var currVal_1 = _ck(_v, 2, 0, _co.column, _co.sortDir, _co.sortFn, _co.allRowsSelected, _co.selectFn);
@@ -74287,24 +74709,24 @@ var DraggableDirective = (function () {
             this.subscription = undefined;
         }
     };
+    DraggableDirective.decorators = [
+        { type: core_1.Directive, args: [{ selector: '[draggable]' },] },
+    ];
+    /** @nocollapse */
+    DraggableDirective.ctorParameters = function () { return [
+        { type: core_1.ElementRef, },
+    ]; };
+    DraggableDirective.propDecorators = {
+        'dragEventTarget': [{ type: core_1.Input },],
+        'dragModel': [{ type: core_1.Input },],
+        'dragX': [{ type: core_1.Input },],
+        'dragY': [{ type: core_1.Input },],
+        'dragStart': [{ type: core_1.Output },],
+        'dragging': [{ type: core_1.Output },],
+        'dragEnd': [{ type: core_1.Output },],
+    };
     return DraggableDirective;
 }());
-DraggableDirective.decorators = [
-    { type: core_1.Directive, args: [{ selector: '[draggable]' },] },
-];
-/** @nocollapse */
-DraggableDirective.ctorParameters = function () { return [
-    { type: core_1.ElementRef, },
-]; };
-DraggableDirective.propDecorators = {
-    'dragEventTarget': [{ type: core_1.Input },],
-    'dragModel': [{ type: core_1.Input },],
-    'dragX': [{ type: core_1.Input },],
-    'dragY': [{ type: core_1.Input },],
-    'dragStart': [{ type: core_1.Output },],
-    'dragging': [{ type: core_1.Output },],
-    'dragEnd': [{ type: core_1.Output },],
-};
 exports.DraggableDirective = DraggableDirective;
 
 });
@@ -74373,27 +74795,27 @@ var ResizeableDirective = (function () {
             this.subscription = undefined;
         }
     };
+    ResizeableDirective.decorators = [
+        { type: core_1.Directive, args: [{
+                    selector: '[resizeable]',
+                    host: {
+                        '[class.resizeable]': 'resizeEnabled'
+                    }
+                },] },
+    ];
+    /** @nocollapse */
+    ResizeableDirective.ctorParameters = function () { return [
+        { type: core_1.ElementRef, },
+    ]; };
+    ResizeableDirective.propDecorators = {
+        'resizeEnabled': [{ type: core_1.Input },],
+        'minWidth': [{ type: core_1.Input },],
+        'maxWidth': [{ type: core_1.Input },],
+        'resize': [{ type: core_1.Output },],
+        'onMousedown': [{ type: core_1.HostListener, args: ['mousedown', ['$event'],] },],
+    };
     return ResizeableDirective;
 }());
-ResizeableDirective.decorators = [
-    { type: core_1.Directive, args: [{
-                selector: '[resizeable]',
-                host: {
-                    '[class.resizeable]': 'resizeEnabled'
-                }
-            },] },
-];
-/** @nocollapse */
-ResizeableDirective.ctorParameters = function () { return [
-    { type: core_1.ElementRef, },
-]; };
-ResizeableDirective.propDecorators = {
-    'resizeEnabled': [{ type: core_1.Input },],
-    'minWidth': [{ type: core_1.Input },],
-    'maxWidth': [{ type: core_1.Input },],
-    'resize': [{ type: core_1.Output },],
-    'onMousedown': [{ type: core_1.HostListener, args: ['mousedown', ['$event'],] },],
-};
 exports.ResizeableDirective = ResizeableDirective;
 
 });
@@ -74498,24 +74920,24 @@ var LongPressDirective = (function () {
             this.subscription = undefined;
         }
     };
+    LongPressDirective.decorators = [
+        { type: core_1.Directive, args: [{ selector: '[long-press]' },] },
+    ];
+    /** @nocollapse */
+    LongPressDirective.ctorParameters = function () { return []; };
+    LongPressDirective.propDecorators = {
+        'pressEnabled': [{ type: core_1.Input },],
+        'pressModel': [{ type: core_1.Input },],
+        'duration': [{ type: core_1.Input },],
+        'longPressStart': [{ type: core_1.Output },],
+        'longPressing': [{ type: core_1.Output },],
+        'longPressEnd': [{ type: core_1.Output },],
+        'press': [{ type: core_1.HostBinding, args: ['class.press',] },],
+        'isLongPress': [{ type: core_1.HostBinding, args: ['class.longpress',] },],
+        'onMouseDown': [{ type: core_1.HostListener, args: ['mousedown', ['$event'],] },],
+    };
     return LongPressDirective;
 }());
-LongPressDirective.decorators = [
-    { type: core_1.Directive, args: [{ selector: '[long-press]' },] },
-];
-/** @nocollapse */
-LongPressDirective.ctorParameters = function () { return []; };
-LongPressDirective.propDecorators = {
-    'pressEnabled': [{ type: core_1.Input },],
-    'pressModel': [{ type: core_1.Input },],
-    'duration': [{ type: core_1.Input },],
-    'longPressStart': [{ type: core_1.Output },],
-    'longPressing': [{ type: core_1.Output },],
-    'longPressEnd': [{ type: core_1.Output },],
-    'press': [{ type: core_1.HostBinding, args: ['class.press',] },],
-    'isLongPress': [{ type: core_1.HostBinding, args: ['class.longpress',] },],
-    'onMouseDown': [{ type: core_1.HostListener, args: ['mousedown', ['$event'],] },],
-};
 exports.LongPressDirective = LongPressDirective;
 
 });
@@ -74677,39 +75099,39 @@ var DataTableHeaderComponent = (function () {
         }
         return styles;
     };
+    DataTableHeaderComponent.decorators = [
+        { type: core_1.Component, args: [{
+                    selector: 'datatable-header',
+                    template: "\n    <div\n      orderable\n      (reorder)=\"onColumnReordered($event)\"\n      [style.width.px]=\"columnGroupWidths.total\"\n      class=\"datatable-header-inner\">\n      <div\n        *ngFor=\"let colGroup of columnsByPin; trackBy: trackByGroups\"\n        [class]=\"'datatable-row-' + colGroup.type\"\n        [ngStyle]=\"stylesByGroup(colGroup.type)\">\n        <datatable-header-cell\n          *ngFor=\"let column of colGroup.columns; trackBy: columnTrackingFn\"\n          resizeable\n          [resizeEnabled]=\"column.resizeable\"\n          (resize)=\"onColumnResized($event, column)\"\n          long-press\n          [pressModel]=\"column\"\n          [pressEnabled]=\"reorderable && column.draggable\"\n          (longPressStart)=\"onLongPressStart($event)\"\n          (longPressEnd)=\"onLongPressEnd($event)\"\n          draggable\n          [dragX]=\"reorderable && column.draggable && column.dragging\"\n          [dragY]=\"false\"\n          [dragModel]=\"column\"\n          [dragEventTarget]=\"dragEventTarget\"\n          [headerHeight]=\"headerHeight\"\n          [column]=\"column\"\n          [sortType]=\"sortType\"\n          [sorts]=\"sorts\"\n          [selectionType]=\"selectionType\"\n          [sortAscendingIcon]=\"sortAscendingIcon\"\n          [sortDescendingIcon]=\"sortDescendingIcon\"\n          [allRowsSelected]=\"allRowsSelected\"\n          (sort)=\"onSort($event)\"\n          (select)=\"select.emit($event)\"\n          (columnContextmenu)=\"columnContextmenu.emit($event)\">\n        </datatable-header-cell>\n      </div>\n    </div>\n  ",
+                    host: {
+                        class: 'datatable-header'
+                    }
+                },] },
+    ];
+    /** @nocollapse */
+    DataTableHeaderComponent.ctorParameters = function () { return []; };
+    DataTableHeaderComponent.propDecorators = {
+        'sortAscendingIcon': [{ type: core_1.Input },],
+        'sortDescendingIcon': [{ type: core_1.Input },],
+        'scrollbarH': [{ type: core_1.Input },],
+        'innerWidth': [{ type: core_1.Input },],
+        'offsetX': [{ type: core_1.Input },],
+        'sorts': [{ type: core_1.Input },],
+        'sortType': [{ type: core_1.Input },],
+        'allRowsSelected': [{ type: core_1.Input },],
+        'selectionType': [{ type: core_1.Input },],
+        'reorderable': [{ type: core_1.Input },],
+        'headerHeight': [{ type: core_1.HostBinding, args: ['style.height',] }, { type: core_1.Input },],
+        'columns': [{ type: core_1.Input },],
+        'sort': [{ type: core_1.Output },],
+        'reorder': [{ type: core_1.Output },],
+        'resize': [{ type: core_1.Output },],
+        'select': [{ type: core_1.Output },],
+        'columnContextmenu': [{ type: core_1.Output },],
+        'headerWidth': [{ type: core_1.HostBinding, args: ['style.width',] },],
+    };
     return DataTableHeaderComponent;
 }());
-DataTableHeaderComponent.decorators = [
-    { type: core_1.Component, args: [{
-                selector: 'datatable-header',
-                template: "\n    <div\n      orderable\n      (reorder)=\"onColumnReordered($event)\"\n      [style.width.px]=\"columnGroupWidths.total\"\n      class=\"datatable-header-inner\">\n      <div\n        *ngFor=\"let colGroup of columnsByPin; trackBy: trackByGroups\"\n        [class]=\"'datatable-row-' + colGroup.type\"\n        [ngStyle]=\"stylesByGroup(colGroup.type)\">\n        <datatable-header-cell\n          *ngFor=\"let column of colGroup.columns; trackBy: columnTrackingFn\"\n          resizeable\n          [resizeEnabled]=\"column.resizeable\"\n          (resize)=\"onColumnResized($event, column)\"\n          long-press\n          [pressModel]=\"column\"\n          [pressEnabled]=\"reorderable && column.draggable\"\n          (longPressStart)=\"onLongPressStart($event)\"\n          (longPressEnd)=\"onLongPressEnd($event)\"\n          draggable\n          [dragX]=\"reorderable && column.draggable && column.dragging\"\n          [dragY]=\"false\"\n          [dragModel]=\"column\"\n          [dragEventTarget]=\"dragEventTarget\"\n          [headerHeight]=\"headerHeight\"\n          [column]=\"column\"\n          [sortType]=\"sortType\"\n          [sorts]=\"sorts\"\n          [selectionType]=\"selectionType\"\n          [sortAscendingIcon]=\"sortAscendingIcon\"\n          [sortDescendingIcon]=\"sortDescendingIcon\"\n          [allRowsSelected]=\"allRowsSelected\"\n          (sort)=\"onSort($event)\"\n          (select)=\"select.emit($event)\"\n          (columnContextmenu)=\"columnContextmenu.emit($event)\">\n        </datatable-header-cell>\n      </div>\n    </div>\n  ",
-                host: {
-                    class: 'datatable-header'
-                }
-            },] },
-];
-/** @nocollapse */
-DataTableHeaderComponent.ctorParameters = function () { return []; };
-DataTableHeaderComponent.propDecorators = {
-    'sortAscendingIcon': [{ type: core_1.Input },],
-    'sortDescendingIcon': [{ type: core_1.Input },],
-    'scrollbarH': [{ type: core_1.Input },],
-    'innerWidth': [{ type: core_1.Input },],
-    'offsetX': [{ type: core_1.Input },],
-    'sorts': [{ type: core_1.Input },],
-    'sortType': [{ type: core_1.Input },],
-    'allRowsSelected': [{ type: core_1.Input },],
-    'selectionType': [{ type: core_1.Input },],
-    'reorderable': [{ type: core_1.Input },],
-    'headerHeight': [{ type: core_1.HostBinding, args: ['style.height',] }, { type: core_1.Input },],
-    'columns': [{ type: core_1.Input },],
-    'sort': [{ type: core_1.Output },],
-    'reorder': [{ type: core_1.Output },],
-    'resize': [{ type: core_1.Output },],
-    'select': [{ type: core_1.Output },],
-    'columnContextmenu': [{ type: core_1.Output },],
-    'headerWidth': [{ type: core_1.HostBinding, args: ['style.width',] },],
-};
 exports.DataTableHeaderComponent = DataTableHeaderComponent;
 
 });
@@ -74822,20 +75244,20 @@ var OrderableDirective = (function () {
             return acc;
         }, {});
     };
+    OrderableDirective.decorators = [
+        { type: core_1.Directive, args: [{ selector: '[orderable]' },] },
+    ];
+    /** @nocollapse */
+    OrderableDirective.ctorParameters = function () { return [
+        { type: core_1.KeyValueDiffers, },
+        { type: undefined, decorators: [{ type: core_1.Inject, args: [platform_browser_1.DOCUMENT,] },] },
+    ]; };
+    OrderableDirective.propDecorators = {
+        'reorder': [{ type: core_1.Output },],
+        'draggables': [{ type: core_1.ContentChildren, args: [draggable_directive.DraggableDirective, { descendants: true },] },],
+    };
     return OrderableDirective;
 }());
-OrderableDirective.decorators = [
-    { type: core_1.Directive, args: [{ selector: '[orderable]' },] },
-];
-/** @nocollapse */
-OrderableDirective.ctorParameters = function () { return [
-    { type: core_1.KeyValueDiffers, },
-    { type: undefined, decorators: [{ type: core_1.Inject, args: [platform_browser_1.DOCUMENT,] },] },
-]; };
-OrderableDirective.propDecorators = {
-    'reorder': [{ type: core_1.Output },],
-    'draggables': [{ type: core_1.ContentChildren, args: [draggable_directive.DraggableDirective, { descendants: true },] },],
-};
 exports.OrderableDirective = OrderableDirective;
 
 });
@@ -74966,7 +75388,7 @@ function View_DataTableHeaderComponent_0(_l) {
                 ad = (pd_0 && ad);
             }
             return ad;
-        }, null, null)), directiveDef(1196032, null, 1, orderable_directive_1, [KeyValueDiffers, DOCUMENT], null, { reorder: 'reorder' }), queryDef(603979776, 1, { draggables: 1 }), (_l()(), textDef(null, ['\n      '])), (_l()(), anchorDef(16777216, null, null, 1, null, View_DataTableHeaderComponent_1)),
+        }, null, null)), directiveDef(1196032, null, 1, orderable_directive_1, [KeyValueDiffers, DOCUMENT$1], null, { reorder: 'reorder' }), queryDef(603979776, 1, { draggables: 1 }), (_l()(), textDef(null, ['\n      '])), (_l()(), anchorDef(16777216, null, null, 1, null, View_DataTableHeaderComponent_1)),
         directiveDef(802816, null, 0, NgForOf, [ViewContainerRef, TemplateRef,
             IterableDiffers], { ngForOf: [0, 'ngForOf'], ngForTrackBy: [1, 'ngForTrackBy'] }, null), (_l()(), textDef(null, ['\n    '])), (_l()(), textDef(null, ['\n  ']))], function (_ck, _v) {
         var _co = _v.component;
@@ -75085,30 +75507,30 @@ var DataTablePagerComponent = (function () {
         }
         return pages;
     };
+    DataTablePagerComponent.decorators = [
+        { type: core_1.Component, args: [{
+                    selector: 'datatable-pager',
+                    template: "\n    <ul class=\"pager\">\n      <li [class.disabled]=\"!canPrevious()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"selectPage(1)\">\n          <i class=\"{{pagerPreviousIcon}}\"></i>\n        </a>\n      </li>\n      <li [class.disabled]=\"!canPrevious()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"prevPage()\">\n          <i class=\"{{pagerLeftArrowIcon}}\"></i>\n        </a>\n      </li>\n      <li\n        class=\"pages\"\n        *ngFor=\"let pg of pages\"\n        [class.active]=\"pg.number === page\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"selectPage(pg.number)\">\n          {{pg.text}}\n        </a>\n      </li>\n      <li [class.disabled]=\"!canNext()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"nextPage()\">\n          <i class=\"{{pagerRightArrowIcon}}\"></i>\n        </a>\n      </li>\n      <li [class.disabled]=\"!canNext()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"selectPage(totalPages)\">\n          <i class=\"{{pagerNextIcon}}\"></i>\n        </a>\n      </li>\n    </ul>\n  ",
+                    host: {
+                        class: 'datatable-pager'
+                    },
+                    changeDetection: core_1.ChangeDetectionStrategy.OnPush
+                },] },
+    ];
+    /** @nocollapse */
+    DataTablePagerComponent.ctorParameters = function () { return []; };
+    DataTablePagerComponent.propDecorators = {
+        'pagerLeftArrowIcon': [{ type: core_1.Input },],
+        'pagerRightArrowIcon': [{ type: core_1.Input },],
+        'pagerPreviousIcon': [{ type: core_1.Input },],
+        'pagerNextIcon': [{ type: core_1.Input },],
+        'size': [{ type: core_1.Input },],
+        'count': [{ type: core_1.Input },],
+        'page': [{ type: core_1.Input },],
+        'change': [{ type: core_1.Output },],
+    };
     return DataTablePagerComponent;
 }());
-DataTablePagerComponent.decorators = [
-    { type: core_1.Component, args: [{
-                selector: 'datatable-pager',
-                template: "\n    <ul class=\"pager\">\n      <li [class.disabled]=\"!canPrevious()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"selectPage(1)\">\n          <i class=\"{{pagerPreviousIcon}}\"></i>\n        </a>\n      </li>\n      <li [class.disabled]=\"!canPrevious()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"prevPage()\">\n          <i class=\"{{pagerLeftArrowIcon}}\"></i>\n        </a>\n      </li>\n      <li\n        class=\"pages\"\n        *ngFor=\"let pg of pages\"\n        [class.active]=\"pg.number === page\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"selectPage(pg.number)\">\n          {{pg.text}}\n        </a>\n      </li>\n      <li [class.disabled]=\"!canNext()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"nextPage()\">\n          <i class=\"{{pagerRightArrowIcon}}\"></i>\n        </a>\n      </li>\n      <li [class.disabled]=\"!canNext()\">\n        <a\n          href=\"javascript:void(0)\"\n          (click)=\"selectPage(totalPages)\">\n          <i class=\"{{pagerNextIcon}}\"></i>\n        </a>\n      </li>\n    </ul>\n  ",
-                host: {
-                    class: 'datatable-pager'
-                },
-                changeDetection: core_1.ChangeDetectionStrategy.OnPush
-            },] },
-];
-/** @nocollapse */
-DataTablePagerComponent.ctorParameters = function () { return []; };
-DataTablePagerComponent.propDecorators = {
-    'pagerLeftArrowIcon': [{ type: core_1.Input },],
-    'pagerRightArrowIcon': [{ type: core_1.Input },],
-    'pagerPreviousIcon': [{ type: core_1.Input },],
-    'pagerNextIcon': [{ type: core_1.Input },],
-    'size': [{ type: core_1.Input },],
-    'count': [{ type: core_1.Input },],
-    'page': [{ type: core_1.Input },],
-    'change': [{ type: core_1.Output },],
-};
 exports.DataTablePagerComponent = DataTablePagerComponent;
 
 });
@@ -75241,35 +75663,35 @@ var DataTableFooterComponent = (function () {
         enumerable: true,
         configurable: true
     });
+    DataTableFooterComponent.decorators = [
+        { type: core_1.Component, args: [{
+                    selector: 'datatable-footer',
+                    template: "\n    <div\n      class=\"datatable-footer-inner\"\n      [ngClass]=\"{'selected-count': selectedMessage}\"\n      [style.height.px]=\"footerHeight\">\n      <ng-template\n        *ngIf=\"footerTemplate\"\n        [ngTemplateOutlet]=\"footerTemplate.template\"\n        [ngOutletContext]=\"{ \n          rowCount: rowCount, \n          pageSize: pageSize, \n          selectedCount: selectedCount,\n          curPage: curPage,\n          offset: offset\n        }\">\n      </ng-template>\n      <div class=\"page-count\" *ngIf=\"!footerTemplate\">\n        <span *ngIf=\"selectedMessage\">\n          {{selectedCount.toLocaleString()}} {{selectedMessage}} / \n        </span>\n        {{rowCount.toLocaleString()}} {{totalMessage}}\n      </div>\n      <datatable-pager *ngIf=\"!footerTemplate\"\n        [pagerLeftArrowIcon]=\"pagerLeftArrowIcon\"\n        [pagerRightArrowIcon]=\"pagerRightArrowIcon\"\n        [pagerPreviousIcon]=\"pagerPreviousIcon\"\n        [pagerNextIcon]=\"pagerNextIcon\"\n        [page]=\"curPage\"\n        [size]=\"pageSize\"\n        [count]=\"rowCount\"\n        [hidden]=\"!isVisible\"\n        (change)=\"page.emit($event)\">\n      </datatable-pager>\n    </div>\n  ",
+                    host: {
+                        class: 'datatable-footer'
+                    },
+                    changeDetection: core_1.ChangeDetectionStrategy.OnPush
+                },] },
+    ];
+    /** @nocollapse */
+    DataTableFooterComponent.ctorParameters = function () { return []; };
+    DataTableFooterComponent.propDecorators = {
+        'footerHeight': [{ type: core_1.Input },],
+        'rowCount': [{ type: core_1.Input },],
+        'pageSize': [{ type: core_1.Input },],
+        'offset': [{ type: core_1.Input },],
+        'pagerLeftArrowIcon': [{ type: core_1.Input },],
+        'pagerRightArrowIcon': [{ type: core_1.Input },],
+        'pagerPreviousIcon': [{ type: core_1.Input },],
+        'pagerNextIcon': [{ type: core_1.Input },],
+        'totalMessage': [{ type: core_1.Input },],
+        'footerTemplate': [{ type: core_1.Input },],
+        'selectedCount': [{ type: core_1.Input },],
+        'selectedMessage': [{ type: core_1.Input },],
+        'page': [{ type: core_1.Output },],
+    };
     return DataTableFooterComponent;
 }());
-DataTableFooterComponent.decorators = [
-    { type: core_1.Component, args: [{
-                selector: 'datatable-footer',
-                template: "\n    <div\n      class=\"datatable-footer-inner\"\n      [ngClass]=\"{'selected-count': selectedMessage}\"\n      [style.height.px]=\"footerHeight\">\n      <ng-template\n        *ngIf=\"footerTemplate\"\n        [ngTemplateOutlet]=\"footerTemplate.template\"\n        [ngOutletContext]=\"{ \n          rowCount: rowCount, \n          pageSize: pageSize, \n          selectedCount: selectedCount,\n          curPage: curPage,\n          offset: offset\n        }\">\n      </ng-template>\n      <div class=\"page-count\" *ngIf=\"!footerTemplate\">\n        <span *ngIf=\"selectedMessage\">\n          {{selectedCount.toLocaleString()}} {{selectedMessage}} / \n        </span>\n        {{rowCount.toLocaleString()}} {{totalMessage}}\n      </div>\n      <datatable-pager *ngIf=\"!footerTemplate\"\n        [pagerLeftArrowIcon]=\"pagerLeftArrowIcon\"\n        [pagerRightArrowIcon]=\"pagerRightArrowIcon\"\n        [pagerPreviousIcon]=\"pagerPreviousIcon\"\n        [pagerNextIcon]=\"pagerNextIcon\"\n        [page]=\"curPage\"\n        [size]=\"pageSize\"\n        [count]=\"rowCount\"\n        [hidden]=\"!isVisible\"\n        (change)=\"page.emit($event)\">\n      </datatable-pager>\n    </div>\n  ",
-                host: {
-                    class: 'datatable-footer'
-                },
-                changeDetection: core_1.ChangeDetectionStrategy.OnPush
-            },] },
-];
-/** @nocollapse */
-DataTableFooterComponent.ctorParameters = function () { return []; };
-DataTableFooterComponent.propDecorators = {
-    'footerHeight': [{ type: core_1.Input },],
-    'rowCount': [{ type: core_1.Input },],
-    'pageSize': [{ type: core_1.Input },],
-    'offset': [{ type: core_1.Input },],
-    'pagerLeftArrowIcon': [{ type: core_1.Input },],
-    'pagerRightArrowIcon': [{ type: core_1.Input },],
-    'pagerPreviousIcon': [{ type: core_1.Input },],
-    'pagerNextIcon': [{ type: core_1.Input },],
-    'totalMessage': [{ type: core_1.Input },],
-    'footerTemplate': [{ type: core_1.Input },],
-    'selectedCount': [{ type: core_1.Input },],
-    'selectedMessage': [{ type: core_1.Input },],
-    'page': [{ type: core_1.Output },],
-};
 exports.DataTableFooterComponent = DataTableFooterComponent;
 
 });
@@ -75290,8 +75712,8 @@ function View_DataTableFooterComponent_2(_l) {
 }
 function View_DataTableFooterComponent_1(_l) {
     return viewDef(0, [(_l()(), anchorDef(16777216, null, null, 2, null, View_DataTableFooterComponent_2)), directiveDef(540672, null, 0, NgTemplateOutlet, [ViewContainerRef], { ngTemplateOutlet: [0, 'ngTemplateOutlet'], ngOutletContext: [1,
-                'ngOutletContext'] }, null), pureObjectDef(['rowCount', 'pageSize', 'selectedCount',
-            'curPage', 'offset']), (_l()(), anchorDef(0, null, null, 0))], function (_ck, _v) {
+                'ngOutletContext'] }, null), pureObjectDef({ rowCount: 0, pageSize: 1, selectedCount: 2,
+            curPage: 3, offset: 4 }), (_l()(), anchorDef(0, null, null, 0))], function (_ck, _v) {
         var _co = _v.component;
         var currVal_0 = _co.footerTemplate.template;
         var currVal_1 = _ck(_v, 2, 0, _co.rowCount, _co.pageSize, _co.selectedCount, _co.curPage, _co.offset);
@@ -75351,7 +75773,7 @@ function View_DataTableFooterComponent_5(_l) {
     });
 }
 function View_DataTableFooterComponent_0(_l) {
-    return viewDef(2, [(_l()(), textDef(null, ['\n    '])), (_l()(), elementDef(0, null, null, 12, 'div', [['class', 'datatable-footer-inner']], [[4, 'height', 'px']], null, null, null, null)), directiveDef(278528, null, 0, NgClass, [IterableDiffers, KeyValueDiffers, ElementRef, Renderer], { klass: [0, 'klass'], ngClass: [1, 'ngClass'] }, null), pureObjectDef(['selected-count']),
+    return viewDef(2, [(_l()(), textDef(null, ['\n    '])), (_l()(), elementDef(0, null, null, 12, 'div', [['class', 'datatable-footer-inner']], [[4, 'height', 'px']], null, null, null, null)), directiveDef(278528, null, 0, NgClass, [IterableDiffers, KeyValueDiffers, ElementRef, Renderer], { klass: [0, 'klass'], ngClass: [1, 'ngClass'] }, null), pureObjectDef({ 'selected-count': 0 }),
         (_l()(), textDef(null, ['\n      '])), (_l()(), anchorDef(16777216, null, null, 1, null, View_DataTableFooterComponent_1)), directiveDef(16384, null, 0, NgIf, [ViewContainerRef, TemplateRef], { ngIf: [0, 'ngIf'] }, null), (_l()(), textDef(null, ['\n      '])), (_l()(), anchorDef(16777216, null, null, 1, null, View_DataTableFooterComponent_3)),
         directiveDef(16384, null, 0, NgIf, [ViewContainerRef, TemplateRef], { ngIf: [0,
                 'ngIf'] }, null), (_l()(), textDef(null, ['\n      '])), (_l()(),
@@ -75416,15 +75838,15 @@ var ScrollbarHelper = (function () {
         outer.parentNode.removeChild(outer);
         return widthNoScroll - widthWithScroll;
     };
+    ScrollbarHelper.decorators = [
+        { type: core_1.Injectable },
+    ];
+    /** @nocollapse */
+    ScrollbarHelper.ctorParameters = function () { return [
+        { type: undefined, decorators: [{ type: core_1.Inject, args: [platform_browser_1.DOCUMENT,] },] },
+    ]; };
     return ScrollbarHelper;
 }());
-ScrollbarHelper.decorators = [
-    { type: core_1.Injectable },
-];
-/** @nocollapse */
-ScrollbarHelper.ctorParameters = function () { return [
-    { type: undefined, decorators: [{ type: core_1.Inject, args: [platform_browser_1.DOCUMENT,] },] },
-]; };
 exports.ScrollbarHelper = ScrollbarHelper;
 
 });
@@ -75496,29 +75918,29 @@ var ScrollerComponent = (function () {
         this.prevScrollYPos = this.scrollYPos;
         this.prevScrollXPos = this.scrollXPos;
     };
+    ScrollerComponent.decorators = [
+        { type: core_1.Component, args: [{
+                    selector: 'datatable-scroller',
+                    template: "\n    <ng-content></ng-content>\n  ",
+                    host: {
+                        class: 'datatable-scroll'
+                    }
+                },] },
+    ];
+    /** @nocollapse */
+    ScrollerComponent.ctorParameters = function () { return [
+        { type: core_1.ElementRef, },
+        { type: core_1.Renderer, },
+    ]; };
+    ScrollerComponent.propDecorators = {
+        'scrollbarV': [{ type: core_1.Input },],
+        'scrollbarH': [{ type: core_1.Input },],
+        'scrollHeight': [{ type: core_1.HostBinding, args: ['style.height.px',] }, { type: core_1.Input },],
+        'scrollWidth': [{ type: core_1.HostBinding, args: ['style.width.px',] }, { type: core_1.Input },],
+        'scroll': [{ type: core_1.Output },],
+    };
     return ScrollerComponent;
 }());
-ScrollerComponent.decorators = [
-    { type: core_1.Component, args: [{
-                selector: 'datatable-scroller',
-                template: "\n    <ng-content></ng-content>\n  ",
-                host: {
-                    class: 'datatable-scroll'
-                }
-            },] },
-];
-/** @nocollapse */
-ScrollerComponent.ctorParameters = function () { return [
-    { type: core_1.ElementRef, },
-    { type: core_1.Renderer, },
-]; };
-ScrollerComponent.propDecorators = {
-    'scrollbarV': [{ type: core_1.Input },],
-    'scrollbarH': [{ type: core_1.Input },],
-    'scrollHeight': [{ type: core_1.HostBinding, args: ['style.height.px',] }, { type: core_1.Input },],
-    'scrollWidth': [{ type: core_1.HostBinding, args: ['style.width.px',] }, { type: core_1.Input },],
-    'scroll': [{ type: core_1.Output },],
-};
 exports.ScrollerComponent = ScrollerComponent;
 
 });
@@ -76008,50 +76430,50 @@ var DataTableBodyComponent = (function () {
         this.updateIndexes();
         this.updateRows();
     };
+    DataTableBodyComponent.decorators = [
+        { type: core_1.Component, args: [{
+                    selector: 'datatable-body',
+                    template: "\n    <datatable-selection\n      #selector\n      [selected]=\"selected\"\n      [rows]=\"temp\"\n      [selectCheck]=\"selectCheck\"\n      [selectEnabled]=\"selectEnabled\"\n      [selectionType]=\"selectionType\"\n      [rowIdentity]=\"rowIdentity\"\n      (select)=\"select.emit($event)\"\n      (activate)=\"activate.emit($event)\">\n      <datatable-progress\n        *ngIf=\"loadingIndicator\">\n      </datatable-progress>\n      <datatable-scroller\n        *ngIf=\"rows?.length\"\n        [scrollbarV]=\"scrollbarV\"\n        [scrollbarH]=\"scrollbarH\"\n        [scrollHeight]=\"scrollHeight\"\n        [scrollWidth]=\"columnGroupWidths.total\"\n        (scroll)=\"onBodyScroll($event)\">\n        <datatable-row-wrapper\n          *ngFor=\"let row of temp; let i = index; trackBy: rowTrackingFn;\"\n          [ngStyle]=\"getRowsStyles(row)\"\n          [rowDetail]=\"rowDetail\"\n          [detailRowHeight]=\"getDetailRowHeight(row,i)\"\n          [row]=\"row\"\n          [expanded]=\"row.$$expanded === 1\"\n          (rowContextmenu)=\"rowContextmenu.emit($event)\">\n          <datatable-body-row\n            tabindex=\"-1\"\n            [isSelected]=\"selector.getRowSelected(row)\"\n            [innerWidth]=\"innerWidth\"\n            [offsetX]=\"offsetX\"\n            [columns]=\"columns\"\n            [rowHeight]=\"getRowHeight(row)\"\n            [row]=\"row\"\n            [rowClass]=\"rowClass\"\n            (activate)=\"selector.onActivate($event, i)\">\n          </datatable-body-row>\n        </datatable-row-wrapper>\n      </datatable-scroller>\n      <div\n        class=\"empty-row\"\n        *ngIf=\"!rows?.length\"\n        [innerHTML]=\"emptyMessage\">\n      </div>\n    </datatable-selection>\n  ",
+                    host: {
+                        class: 'datatable-body'
+                    }
+                },] },
+    ];
+    /** @nocollapse */
+    DataTableBodyComponent.ctorParameters = function () { return []; };
+    DataTableBodyComponent.propDecorators = {
+        'scrollbarV': [{ type: core_1.Input },],
+        'scrollbarH': [{ type: core_1.Input },],
+        'loadingIndicator': [{ type: core_1.Input },],
+        'externalPaging': [{ type: core_1.Input },],
+        'rowHeight': [{ type: core_1.Input },],
+        'offsetX': [{ type: core_1.Input },],
+        'emptyMessage': [{ type: core_1.Input },],
+        'selectionType': [{ type: core_1.Input },],
+        'selected': [{ type: core_1.Input },],
+        'rowIdentity': [{ type: core_1.Input },],
+        'rowDetail': [{ type: core_1.Input },],
+        'selectCheck': [{ type: core_1.Input },],
+        'trackByProp': [{ type: core_1.Input },],
+        'rowClass': [{ type: core_1.Input },],
+        'pageSize': [{ type: core_1.Input },],
+        'rows': [{ type: core_1.Input },],
+        'columns': [{ type: core_1.Input },],
+        'offset': [{ type: core_1.Input },],
+        'rowCount': [{ type: core_1.Input },],
+        'innerWidth': [{ type: core_1.Input },],
+        'bodyWidth': [{ type: core_1.HostBinding, args: ['style.width',] },],
+        'bodyHeight': [{ type: core_1.Input }, { type: core_1.HostBinding, args: ['style.height',] },],
+        'scroll': [{ type: core_1.Output },],
+        'page': [{ type: core_1.Output },],
+        'activate': [{ type: core_1.Output },],
+        'select': [{ type: core_1.Output },],
+        'detailToggle': [{ type: core_1.Output },],
+        'rowContextmenu': [{ type: core_1.Output },],
+        'scroller': [{ type: core_1.ViewChild, args: [scroller_component.ScrollerComponent,] },],
+    };
     return DataTableBodyComponent;
 }());
-DataTableBodyComponent.decorators = [
-    { type: core_1.Component, args: [{
-                selector: 'datatable-body',
-                template: "\n    <datatable-selection\n      #selector\n      [selected]=\"selected\"\n      [rows]=\"temp\"\n      [selectCheck]=\"selectCheck\"\n      [selectEnabled]=\"selectEnabled\"\n      [selectionType]=\"selectionType\"\n      [rowIdentity]=\"rowIdentity\"\n      (select)=\"select.emit($event)\"\n      (activate)=\"activate.emit($event)\">\n      <datatable-progress\n        *ngIf=\"loadingIndicator\">\n      </datatable-progress>\n      <datatable-scroller\n        *ngIf=\"rows?.length\"\n        [scrollbarV]=\"scrollbarV\"\n        [scrollbarH]=\"scrollbarH\"\n        [scrollHeight]=\"scrollHeight\"\n        [scrollWidth]=\"columnGroupWidths.total\"\n        (scroll)=\"onBodyScroll($event)\">\n        <datatable-row-wrapper\n          *ngFor=\"let row of temp; let i = index; trackBy: rowTrackingFn;\"\n          [ngStyle]=\"getRowsStyles(row)\"\n          [rowDetail]=\"rowDetail\"\n          [detailRowHeight]=\"getDetailRowHeight(row,i)\"\n          [row]=\"row\"\n          [expanded]=\"row.$$expanded === 1\"\n          (rowContextmenu)=\"rowContextmenu.emit($event)\">\n          <datatable-body-row\n            tabindex=\"-1\"\n            [isSelected]=\"selector.getRowSelected(row)\"\n            [innerWidth]=\"innerWidth\"\n            [offsetX]=\"offsetX\"\n            [columns]=\"columns\"\n            [rowHeight]=\"getRowHeight(row)\"\n            [row]=\"row\"\n            [rowClass]=\"rowClass\"\n            (activate)=\"selector.onActivate($event, i)\">\n          </datatable-body-row>\n        </datatable-row-wrapper>\n      </datatable-scroller>\n      <div\n        class=\"empty-row\"\n        *ngIf=\"!rows?.length\"\n        [innerHTML]=\"emptyMessage\">\n      </div>\n    </datatable-selection>\n  ",
-                host: {
-                    class: 'datatable-body'
-                }
-            },] },
-];
-/** @nocollapse */
-DataTableBodyComponent.ctorParameters = function () { return []; };
-DataTableBodyComponent.propDecorators = {
-    'scrollbarV': [{ type: core_1.Input },],
-    'scrollbarH': [{ type: core_1.Input },],
-    'loadingIndicator': [{ type: core_1.Input },],
-    'externalPaging': [{ type: core_1.Input },],
-    'rowHeight': [{ type: core_1.Input },],
-    'offsetX': [{ type: core_1.Input },],
-    'emptyMessage': [{ type: core_1.Input },],
-    'selectionType': [{ type: core_1.Input },],
-    'selected': [{ type: core_1.Input },],
-    'rowIdentity': [{ type: core_1.Input },],
-    'rowDetail': [{ type: core_1.Input },],
-    'selectCheck': [{ type: core_1.Input },],
-    'trackByProp': [{ type: core_1.Input },],
-    'rowClass': [{ type: core_1.Input },],
-    'pageSize': [{ type: core_1.Input },],
-    'rows': [{ type: core_1.Input },],
-    'columns': [{ type: core_1.Input },],
-    'offset': [{ type: core_1.Input },],
-    'rowCount': [{ type: core_1.Input },],
-    'innerWidth': [{ type: core_1.Input },],
-    'bodyWidth': [{ type: core_1.HostBinding, args: ['style.width',] },],
-    'bodyHeight': [{ type: core_1.Input }, { type: core_1.HostBinding, args: ['style.height',] },],
-    'scroll': [{ type: core_1.Output },],
-    'page': [{ type: core_1.Output },],
-    'activate': [{ type: core_1.Output },],
-    'select': [{ type: core_1.Output },],
-    'detailToggle': [{ type: core_1.Output },],
-    'rowContextmenu': [{ type: core_1.Output },],
-    'scroller': [{ type: core_1.ViewChild, args: [scroller_component.ScrollerComponent,] },],
-};
 exports.DataTableBodyComponent = DataTableBodyComponent;
 
 });
@@ -76226,38 +76648,38 @@ var DataTableBodyCellComponent = (function () {
         if (sort)
             return sort.dir;
     };
+    DataTableBodyCellComponent.decorators = [
+        { type: core_1.Component, args: [{
+                    selector: 'datatable-body-cell',
+                    template: "\n    <div class=\"datatable-body-cell-label\">\n      <label\n        *ngIf=\"column.checkboxable\" \n        class=\"datatable-checkbox\">\n        <input \n          type=\"checkbox\"\n          [checked]=\"isSelected\"\n          (click)=\"onCheckboxChange($event)\" \n        />\n      </label>\n      <span\n        *ngIf=\"!column.cellTemplate\"\n        [title]=\"value\"\n        [innerHTML]=\"value\">\n      </span>\n      <ng-template #cellTemplate\n        *ngIf=\"column.cellTemplate\"\n        [ngTemplateOutlet]=\"column.cellTemplate\"\n        [ngOutletContext]=\"{\n          value: value,\n          row: row,\n          column: column,\n          isSelected: isSelected,\n          onCheckboxChangeFn: onCheckboxChangeFn,\n          activateFn: activateFn\n        }\">\n      </ng-template>\n    </div>\n  ",
+                    host: {
+                        class: 'datatable-body-cell'
+                    }
+                },] },
+    ];
+    /** @nocollapse */
+    DataTableBodyCellComponent.ctorParameters = function () { return [
+        { type: core_1.ElementRef, },
+    ]; };
+    DataTableBodyCellComponent.propDecorators = {
+        'row': [{ type: core_1.Input },],
+        'column': [{ type: core_1.Input },],
+        'rowHeight': [{ type: core_1.Input },],
+        'isSelected': [{ type: core_1.Input },],
+        'sorts': [{ type: core_1.Input },],
+        'activate': [{ type: core_1.Output },],
+        'cellTemplate': [{ type: core_1.ViewChild, args: ['cellTemplate', { read: core_1.ViewContainerRef },] },],
+        'columnCssClasses': [{ type: core_1.HostBinding, args: ['class',] },],
+        'width': [{ type: core_1.HostBinding, args: ['style.width.px',] },],
+        'height': [{ type: core_1.HostBinding, args: ['style.height',] },],
+        'onFocus': [{ type: core_1.HostListener, args: ['focus',] },],
+        'onBlur': [{ type: core_1.HostListener, args: ['blur',] },],
+        'onClick': [{ type: core_1.HostListener, args: ['click', ['$event'],] },],
+        'onDblClick': [{ type: core_1.HostListener, args: ['dblclick', ['$event'],] },],
+        'onKeyDown': [{ type: core_1.HostListener, args: ['keydown', ['$event'],] },],
+    };
     return DataTableBodyCellComponent;
 }());
-DataTableBodyCellComponent.decorators = [
-    { type: core_1.Component, args: [{
-                selector: 'datatable-body-cell',
-                template: "\n    <div class=\"datatable-body-cell-label\">\n      <label\n        *ngIf=\"column.checkboxable\" \n        class=\"datatable-checkbox\">\n        <input \n          type=\"checkbox\"\n          [checked]=\"isSelected\"\n          (click)=\"onCheckboxChange($event)\" \n        />\n      </label>\n      <span\n        *ngIf=\"!column.cellTemplate\"\n        [title]=\"value\"\n        [innerHTML]=\"value\">\n      </span>\n      <ng-template #cellTemplate\n        *ngIf=\"column.cellTemplate\"\n        [ngTemplateOutlet]=\"column.cellTemplate\"\n        [ngOutletContext]=\"{\n          value: value,\n          row: row,\n          column: column,\n          isSelected: isSelected,\n          onCheckboxChangeFn: onCheckboxChangeFn,\n          activateFn: activateFn\n        }\">\n      </ng-template>\n    </div>\n  ",
-                host: {
-                    class: 'datatable-body-cell'
-                }
-            },] },
-];
-/** @nocollapse */
-DataTableBodyCellComponent.ctorParameters = function () { return [
-    { type: core_1.ElementRef, },
-]; };
-DataTableBodyCellComponent.propDecorators = {
-    'row': [{ type: core_1.Input },],
-    'column': [{ type: core_1.Input },],
-    'rowHeight': [{ type: core_1.Input },],
-    'isSelected': [{ type: core_1.Input },],
-    'sorts': [{ type: core_1.Input },],
-    'activate': [{ type: core_1.Output },],
-    'cellTemplate': [{ type: core_1.ViewChild, args: ['cellTemplate', { read: core_1.ViewContainerRef },] },],
-    'columnCssClasses': [{ type: core_1.HostBinding, args: ['class',] },],
-    'width': [{ type: core_1.HostBinding, args: ['style.width.px',] },],
-    'height': [{ type: core_1.HostBinding, args: ['style.height',] },],
-    'onFocus': [{ type: core_1.HostListener, args: ['focus',] },],
-    'onBlur': [{ type: core_1.HostListener, args: ['blur',] },],
-    'onClick': [{ type: core_1.HostListener, args: ['click', ['$event'],] },],
-    'onDblClick': [{ type: core_1.HostListener, args: ['dblclick', ['$event'],] },],
-    'onKeyDown': [{ type: core_1.HostListener, args: ['keydown', ['$event'],] },],
-};
 exports.DataTableBodyCellComponent = DataTableBodyCellComponent;
 
 });
@@ -76387,32 +76809,32 @@ var DataTableBodyRowComponent = (function () {
         this.columnsByPin = index$4.columnsByPinArr(val);
         this.columnGroupWidths = index$4.columnGroupWidths(colsByPin, val);
     };
+    DataTableBodyRowComponent.decorators = [
+        { type: core_1.Component, args: [{
+                    selector: 'datatable-body-row',
+                    template: "\n    <div\n      *ngFor=\"let colGroup of columnsByPin; let i = index; trackBy: trackByGroups\"\n      class=\"datatable-row-{{colGroup.type}} datatable-row-group\"\n      [ngStyle]=\"stylesByGroup(colGroup.type)\">\n      <datatable-body-cell\n        *ngFor=\"let column of colGroup.columns; let ii = index; trackBy: columnTrackingFn\"\n        tabindex=\"-1\"\n        [row]=\"row\"\n        [isSelected]=\"isSelected\"\n        [column]=\"column\"\n        [rowHeight]=\"rowHeight\"\n        (activate)=\"onActivate($event, ii)\">\n      </datatable-body-cell>\n    </div>\n  "
+                },] },
+    ];
+    /** @nocollapse */
+    DataTableBodyRowComponent.ctorParameters = function () { return [
+        { type: index$6.ScrollbarHelper, },
+        { type: core_1.ElementRef, },
+    ]; };
+    DataTableBodyRowComponent.propDecorators = {
+        'columns': [{ type: core_1.Input },],
+        'innerWidth': [{ type: core_1.Input },],
+        'rowClass': [{ type: core_1.Input },],
+        'row': [{ type: core_1.Input },],
+        'offsetX': [{ type: core_1.Input },],
+        'isSelected': [{ type: core_1.Input },],
+        'cssClass': [{ type: core_1.HostBinding, args: ['class',] },],
+        'rowHeight': [{ type: core_1.HostBinding, args: ['style.height.px',] }, { type: core_1.Input },],
+        'columnsTotalWidths': [{ type: core_1.HostBinding, args: ['style.width.px',] },],
+        'activate': [{ type: core_1.Output },],
+        'onKeyDown': [{ type: core_1.HostListener, args: ['keydown', ['$event'],] },],
+    };
     return DataTableBodyRowComponent;
 }());
-DataTableBodyRowComponent.decorators = [
-    { type: core_1.Component, args: [{
-                selector: 'datatable-body-row',
-                template: "\n    <div\n      *ngFor=\"let colGroup of columnsByPin; let i = index; trackBy: trackByGroups\"\n      class=\"datatable-row-{{colGroup.type}} datatable-row-group\"\n      [ngStyle]=\"stylesByGroup(colGroup.type)\">\n      <datatable-body-cell\n        *ngFor=\"let column of colGroup.columns; let ii = index; trackBy: columnTrackingFn\"\n        tabindex=\"-1\"\n        [row]=\"row\"\n        [isSelected]=\"isSelected\"\n        [column]=\"column\"\n        [rowHeight]=\"rowHeight\"\n        (activate)=\"onActivate($event, ii)\">\n      </datatable-body-cell>\n    </div>\n  "
-            },] },
-];
-/** @nocollapse */
-DataTableBodyRowComponent.ctorParameters = function () { return [
-    { type: index$6.ScrollbarHelper, },
-    { type: core_1.ElementRef, },
-]; };
-DataTableBodyRowComponent.propDecorators = {
-    'columns': [{ type: core_1.Input },],
-    'innerWidth': [{ type: core_1.Input },],
-    'rowClass': [{ type: core_1.Input },],
-    'row': [{ type: core_1.Input },],
-    'offsetX': [{ type: core_1.Input },],
-    'isSelected': [{ type: core_1.Input },],
-    'cssClass': [{ type: core_1.HostBinding, args: ['class',] },],
-    'rowHeight': [{ type: core_1.HostBinding, args: ['style.height.px',] }, { type: core_1.Input },],
-    'columnsTotalWidths': [{ type: core_1.HostBinding, args: ['style.width.px',] },],
-    'activate': [{ type: core_1.Output },],
-    'onKeyDown': [{ type: core_1.HostListener, args: ['keydown', ['$event'],] },],
-};
 exports.DataTableBodyRowComponent = DataTableBodyRowComponent;
 
 });
@@ -76426,17 +76848,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var ProgressBarComponent = (function () {
     function ProgressBarComponent() {
     }
+    ProgressBarComponent.decorators = [
+        { type: core_1.Component, args: [{
+                    selector: 'datatable-progress',
+                    template: "\n    <div class=\"progress-linear\" role=\"progressbar\">\n      <div class=\"container\">\n        <div class=\"bar\"></div>\n      </div>\n    </div>\n  ",
+                    changeDetection: core_1.ChangeDetectionStrategy.OnPush
+                },] },
+    ];
+    /** @nocollapse */
+    ProgressBarComponent.ctorParameters = function () { return []; };
     return ProgressBarComponent;
 }());
-ProgressBarComponent.decorators = [
-    { type: core_1.Component, args: [{
-                selector: 'datatable-progress',
-                template: "\n    <div class=\"progress-linear\" role=\"progressbar\">\n      <div class=\"container\">\n        <div class=\"bar\"></div>\n      </div>\n    </div>\n  ",
-                changeDetection: core_1.ChangeDetectionStrategy.OnPush
-            },] },
-];
-/** @nocollapse */
-ProgressBarComponent.ctorParameters = function () { return []; };
 exports.ProgressBarComponent = ProgressBarComponent;
 
 });
@@ -76455,27 +76877,27 @@ var DataTableRowWrapperComponent = (function () {
     DataTableRowWrapperComponent.prototype.onContextmenu = function ($event) {
         this.rowContextmenu.emit({ event: $event, row: this.row });
     };
+    DataTableRowWrapperComponent.decorators = [
+        { type: core_1.Component, args: [{
+                    selector: 'datatable-row-wrapper',
+                    template: "\n    <ng-content></ng-content>\n    <div \n      *ngIf=\"expanded\"\n      [style.height.px]=\"detailRowHeight\" \n      class=\"datatable-row-detail\">\n      <ng-template\n        *ngIf=\"rowDetail && rowDetail.template\"\n        [ngTemplateOutlet]=\"rowDetail.template\"\n        [ngOutletContext]=\"{ row: row }\">\n      </ng-template>\n    </div>\n  ",
+                    host: {
+                        class: 'datatable-row-wrapper'
+                    }
+                },] },
+    ];
+    /** @nocollapse */
+    DataTableRowWrapperComponent.ctorParameters = function () { return []; };
+    DataTableRowWrapperComponent.propDecorators = {
+        'rowDetail': [{ type: core_1.Input },],
+        'detailRowHeight': [{ type: core_1.Input },],
+        'expanded': [{ type: core_1.Input },],
+        'row': [{ type: core_1.Input },],
+        'rowContextmenu': [{ type: core_1.Output },],
+        'onContextmenu': [{ type: core_1.HostListener, args: ['contextmenu', ['$event'],] },],
+    };
     return DataTableRowWrapperComponent;
 }());
-DataTableRowWrapperComponent.decorators = [
-    { type: core_1.Component, args: [{
-                selector: 'datatable-row-wrapper',
-                template: "\n    <ng-content></ng-content>\n    <div \n      *ngIf=\"expanded\"\n      [style.height.px]=\"detailRowHeight\" \n      class=\"datatable-row-detail\">\n      <ng-template\n        *ngIf=\"rowDetail && rowDetail.template\"\n        [ngTemplateOutlet]=\"rowDetail.template\"\n        [ngOutletContext]=\"{ row: row }\">\n      </ng-template>\n    </div>\n  ",
-                host: {
-                    class: 'datatable-row-wrapper'
-                }
-            },] },
-];
-/** @nocollapse */
-DataTableRowWrapperComponent.ctorParameters = function () { return []; };
-DataTableRowWrapperComponent.propDecorators = {
-    'rowDetail': [{ type: core_1.Input },],
-    'detailRowHeight': [{ type: core_1.Input },],
-    'expanded': [{ type: core_1.Input },],
-    'row': [{ type: core_1.Input },],
-    'rowContextmenu': [{ type: core_1.Output },],
-    'onContextmenu': [{ type: core_1.HostListener, args: ['contextmenu', ['$event'],] },],
-};
 exports.DataTableRowWrapperComponent = DataTableRowWrapperComponent;
 
 });
@@ -76611,26 +77033,26 @@ var DataTableSelectionComponent = (function () {
             return id === rowId;
         });
     };
+    DataTableSelectionComponent.decorators = [
+        { type: core_1.Component, args: [{
+                    selector: 'datatable-selection',
+                    template: "\n    <ng-content></ng-content>\n  "
+                },] },
+    ];
+    /** @nocollapse */
+    DataTableSelectionComponent.ctorParameters = function () { return []; };
+    DataTableSelectionComponent.propDecorators = {
+        'rows': [{ type: core_1.Input },],
+        'selected': [{ type: core_1.Input },],
+        'selectEnabled': [{ type: core_1.Input },],
+        'selectionType': [{ type: core_1.Input },],
+        'rowIdentity': [{ type: core_1.Input },],
+        'selectCheck': [{ type: core_1.Input },],
+        'activate': [{ type: core_1.Output },],
+        'select': [{ type: core_1.Output },],
+    };
     return DataTableSelectionComponent;
 }());
-DataTableSelectionComponent.decorators = [
-    { type: core_1.Component, args: [{
-                selector: 'datatable-selection',
-                template: "\n    <ng-content></ng-content>\n  "
-            },] },
-];
-/** @nocollapse */
-DataTableSelectionComponent.ctorParameters = function () { return []; };
-DataTableSelectionComponent.propDecorators = {
-    'rows': [{ type: core_1.Input },],
-    'selected': [{ type: core_1.Input },],
-    'selectEnabled': [{ type: core_1.Input },],
-    'selectionType': [{ type: core_1.Input },],
-    'rowIdentity': [{ type: core_1.Input },],
-    'selectCheck': [{ type: core_1.Input },],
-    'activate': [{ type: core_1.Output },],
-    'select': [{ type: core_1.Output },],
-};
 exports.DataTableSelectionComponent = DataTableSelectionComponent;
 
 });
@@ -76661,15 +77083,15 @@ var DataTableColumnHeaderDirective = (function () {
     function DataTableColumnHeaderDirective(template) {
         this.template = template;
     }
+    DataTableColumnHeaderDirective.decorators = [
+        { type: core_1.Directive, args: [{ selector: '[ngx-datatable-header-template]' },] },
+    ];
+    /** @nocollapse */
+    DataTableColumnHeaderDirective.ctorParameters = function () { return [
+        { type: core_1.TemplateRef, },
+    ]; };
     return DataTableColumnHeaderDirective;
 }());
-DataTableColumnHeaderDirective.decorators = [
-    { type: core_1.Directive, args: [{ selector: '[ngx-datatable-header-template]' },] },
-];
-/** @nocollapse */
-DataTableColumnHeaderDirective.ctorParameters = function () { return [
-    { type: core_1.TemplateRef, },
-]; };
 exports.DataTableColumnHeaderDirective = DataTableColumnHeaderDirective;
 
 });
@@ -76682,15 +77104,15 @@ var DataTableColumnCellDirective = (function () {
     function DataTableColumnCellDirective(template) {
         this.template = template;
     }
+    DataTableColumnCellDirective.decorators = [
+        { type: core_1.Directive, args: [{ selector: '[ngx-datatable-cell-template]' },] },
+    ];
+    /** @nocollapse */
+    DataTableColumnCellDirective.ctorParameters = function () { return [
+        { type: core_1.TemplateRef, },
+    ]; };
     return DataTableColumnCellDirective;
 }());
-DataTableColumnCellDirective.decorators = [
-    { type: core_1.Directive, args: [{ selector: '[ngx-datatable-cell-template]' },] },
-];
-/** @nocollapse */
-DataTableColumnCellDirective.ctorParameters = function () { return [
-    { type: core_1.TemplateRef, },
-]; };
 exports.DataTableColumnCellDirective = DataTableColumnCellDirective;
 
 });
@@ -76704,35 +77126,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var DataTableColumnDirective = (function () {
     function DataTableColumnDirective() {
     }
+    DataTableColumnDirective.decorators = [
+        { type: core_1.Directive, args: [{ selector: 'ngx-datatable-column' },] },
+    ];
+    /** @nocollapse */
+    DataTableColumnDirective.ctorParameters = function () { return []; };
+    DataTableColumnDirective.propDecorators = {
+        'name': [{ type: core_1.Input },],
+        'prop': [{ type: core_1.Input },],
+        'frozenLeft': [{ type: core_1.Input },],
+        'frozenRight': [{ type: core_1.Input },],
+        'flexGrow': [{ type: core_1.Input },],
+        'resizeable': [{ type: core_1.Input },],
+        'comparator': [{ type: core_1.Input },],
+        'pipe': [{ type: core_1.Input },],
+        'sortable': [{ type: core_1.Input },],
+        'draggable': [{ type: core_1.Input },],
+        'canAutoResize': [{ type: core_1.Input },],
+        'minWidth': [{ type: core_1.Input },],
+        'width': [{ type: core_1.Input },],
+        'maxWidth': [{ type: core_1.Input },],
+        'checkboxable': [{ type: core_1.Input },],
+        'headerCheckboxable': [{ type: core_1.Input },],
+        'headerClass': [{ type: core_1.Input },],
+        'cellClass': [{ type: core_1.Input },],
+        'cellTemplate': [{ type: core_1.Input }, { type: core_1.ContentChild, args: [columnCell_directive.DataTableColumnCellDirective, { read: core_1.TemplateRef },] },],
+        'headerTemplate': [{ type: core_1.Input }, { type: core_1.ContentChild, args: [columnHeader_directive.DataTableColumnHeaderDirective, { read: core_1.TemplateRef },] },],
+    };
     return DataTableColumnDirective;
 }());
-DataTableColumnDirective.decorators = [
-    { type: core_1.Directive, args: [{ selector: 'ngx-datatable-column' },] },
-];
-/** @nocollapse */
-DataTableColumnDirective.ctorParameters = function () { return []; };
-DataTableColumnDirective.propDecorators = {
-    'name': [{ type: core_1.Input },],
-    'prop': [{ type: core_1.Input },],
-    'frozenLeft': [{ type: core_1.Input },],
-    'frozenRight': [{ type: core_1.Input },],
-    'flexGrow': [{ type: core_1.Input },],
-    'resizeable': [{ type: core_1.Input },],
-    'comparator': [{ type: core_1.Input },],
-    'pipe': [{ type: core_1.Input },],
-    'sortable': [{ type: core_1.Input },],
-    'draggable': [{ type: core_1.Input },],
-    'canAutoResize': [{ type: core_1.Input },],
-    'minWidth': [{ type: core_1.Input },],
-    'width': [{ type: core_1.Input },],
-    'maxWidth': [{ type: core_1.Input },],
-    'checkboxable': [{ type: core_1.Input },],
-    'headerCheckboxable': [{ type: core_1.Input },],
-    'headerClass': [{ type: core_1.Input },],
-    'cellClass': [{ type: core_1.Input },],
-    'cellTemplate': [{ type: core_1.Input }, { type: core_1.ContentChild, args: [columnCell_directive.DataTableColumnCellDirective, { read: core_1.TemplateRef },] },],
-    'headerTemplate': [{ type: core_1.Input }, { type: core_1.ContentChild, args: [columnHeader_directive.DataTableColumnHeaderDirective, { read: core_1.TemplateRef },] },],
-};
 exports.DataTableColumnDirective = DataTableColumnDirective;
 
 });
@@ -76757,17 +77179,17 @@ var DatatableRowDetailTemplateDirective = (function () {
     function DatatableRowDetailTemplateDirective(template) {
         this.template = template;
     }
+    DatatableRowDetailTemplateDirective.decorators = [
+        { type: core_1.Directive, args: [{
+                    selector: '[ngx-datatable-row-detail-template]'
+                },] },
+    ];
+    /** @nocollapse */
+    DatatableRowDetailTemplateDirective.ctorParameters = function () { return [
+        { type: core_1.TemplateRef, },
+    ]; };
     return DatatableRowDetailTemplateDirective;
 }());
-DatatableRowDetailTemplateDirective.decorators = [
-    { type: core_1.Directive, args: [{
-                selector: '[ngx-datatable-row-detail-template]'
-            },] },
-];
-/** @nocollapse */
-DatatableRowDetailTemplateDirective.ctorParameters = function () { return [
-    { type: core_1.TemplateRef, },
-]; };
 exports.DatatableRowDetailTemplateDirective = DatatableRowDetailTemplateDirective;
 
 });
@@ -76828,18 +77250,18 @@ var DatatableRowDetailDirective = (function () {
             value: false
         });
     };
+    DatatableRowDetailDirective.decorators = [
+        { type: core_1.Directive, args: [{ selector: 'ngx-datatable-row-detail' },] },
+    ];
+    /** @nocollapse */
+    DatatableRowDetailDirective.ctorParameters = function () { return []; };
+    DatatableRowDetailDirective.propDecorators = {
+        'rowHeight': [{ type: core_1.Input },],
+        'template': [{ type: core_1.Input }, { type: core_1.ContentChild, args: [rowDetailTemplate_directive.DatatableRowDetailTemplateDirective, { read: core_1.TemplateRef },] },],
+        'toggle': [{ type: core_1.Output },],
+    };
     return DatatableRowDetailDirective;
 }());
-DatatableRowDetailDirective.decorators = [
-    { type: core_1.Directive, args: [{ selector: 'ngx-datatable-row-detail' },] },
-];
-/** @nocollapse */
-DatatableRowDetailDirective.ctorParameters = function () { return []; };
-DatatableRowDetailDirective.propDecorators = {
-    'rowHeight': [{ type: core_1.Input },],
-    'template': [{ type: core_1.Input }, { type: core_1.ContentChild, args: [rowDetailTemplate_directive.DatatableRowDetailTemplateDirective, { read: core_1.TemplateRef },] },],
-    'toggle': [{ type: core_1.Output },],
-};
 exports.DatatableRowDetailDirective = DatatableRowDetailDirective;
 
 });
@@ -76863,15 +77285,15 @@ var DataTableFooterTemplateDirective = (function () {
     function DataTableFooterTemplateDirective(template) {
         this.template = template;
     }
+    DataTableFooterTemplateDirective.decorators = [
+        { type: core_1.Directive, args: [{ selector: '[ngx-datatable-footer-template]' },] },
+    ];
+    /** @nocollapse */
+    DataTableFooterTemplateDirective.ctorParameters = function () { return [
+        { type: core_1.TemplateRef, },
+    ]; };
     return DataTableFooterTemplateDirective;
 }());
-DataTableFooterTemplateDirective.decorators = [
-    { type: core_1.Directive, args: [{ selector: '[ngx-datatable-footer-template]' },] },
-];
-/** @nocollapse */
-DataTableFooterTemplateDirective.ctorParameters = function () { return [
-    { type: core_1.TemplateRef, },
-]; };
 exports.DataTableFooterTemplateDirective = DataTableFooterTemplateDirective;
 
 });
@@ -76884,23 +77306,23 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var DatatableFooterDirective = (function () {
     function DatatableFooterDirective() {
     }
+    DatatableFooterDirective.decorators = [
+        { type: core_1.Directive, args: [{ selector: 'ngx-datatable-footer' },] },
+    ];
+    /** @nocollapse */
+    DatatableFooterDirective.ctorParameters = function () { return []; };
+    DatatableFooterDirective.propDecorators = {
+        'footerHeight': [{ type: core_1.Input },],
+        'totalMessage': [{ type: core_1.Input },],
+        'selectedMessage': [{ type: core_1.Input },],
+        'pagerLeftArrowIcon': [{ type: core_1.Input },],
+        'pagerRightArrowIcon': [{ type: core_1.Input },],
+        'pagerPreviousIcon': [{ type: core_1.Input },],
+        'pagerNextIcon': [{ type: core_1.Input },],
+        'template': [{ type: core_1.Input }, { type: core_1.ContentChild, args: [footerTemplate_directive.DataTableFooterTemplateDirective, { read: core_1.TemplateRef },] },],
+    };
     return DatatableFooterDirective;
 }());
-DatatableFooterDirective.decorators = [
-    { type: core_1.Directive, args: [{ selector: 'ngx-datatable-footer' },] },
-];
-/** @nocollapse */
-DatatableFooterDirective.ctorParameters = function () { return []; };
-DatatableFooterDirective.propDecorators = {
-    'footerHeight': [{ type: core_1.Input },],
-    'totalMessage': [{ type: core_1.Input },],
-    'selectedMessage': [{ type: core_1.Input },],
-    'pagerLeftArrowIcon': [{ type: core_1.Input },],
-    'pagerRightArrowIcon': [{ type: core_1.Input },],
-    'pagerPreviousIcon': [{ type: core_1.Input },],
-    'pagerNextIcon': [{ type: core_1.Input },],
-    'template': [{ type: core_1.Input }, { type: core_1.ContentChild, args: [footerTemplate_directive.DataTableFooterTemplateDirective, { read: core_1.TemplateRef },] },],
-};
 exports.DatatableFooterDirective = DatatableFooterDirective;
 
 });
@@ -77797,81 +78219,81 @@ var DatatableComponent = (function () {
     DatatableComponent.prototype.onBodySelect = function (event) {
         this.select.emit(event);
     };
+    DatatableComponent.decorators = [
+        { type: core_1.Component, args: [{
+                    selector: 'ngx-datatable',
+                    template: "\n    <div\n      visibilityObserver\n      (visible)=\"recalculate()\">\n      <datatable-header\n        *ngIf=\"headerHeight\"\n        [sorts]=\"sorts\"\n        [sortType]=\"sortType\"\n        [scrollbarH]=\"scrollbarH\"\n        [innerWidth]=\"innerWidth\"\n        [offsetX]=\"offsetX\"\n        [columns]=\"columns\"\n        [headerHeight]=\"headerHeight\"\n        [reorderable]=\"reorderable\"\n        [sortAscendingIcon]=\"cssClasses.sortAscending\"\n        [sortDescendingIcon]=\"cssClasses.sortDescending\"\n        [allRowsSelected]=\"allRowsSelected\"\n        [selectionType]=\"selectionType\"\n        (sort)=\"onColumnSort($event)\"\n        (resize)=\"onColumnResize($event)\"\n        (reorder)=\"onColumnReorder($event)\"\n        (select)=\"onHeaderSelect($event)\"\n        (columnContextmenu)=\"onColumnContextmenu($event)\">\n      </datatable-header>\n      <datatable-body\n        [rows]=\"rows\"\n        [scrollbarV]=\"scrollbarV\"\n        [scrollbarH]=\"scrollbarH\"\n        [loadingIndicator]=\"loadingIndicator\"\n        [externalPaging]=\"externalPaging\"\n        [rowHeight]=\"rowHeight\"\n        [rowCount]=\"rowCount\"\n        [offset]=\"offset\"\n        [trackByProp]=\"trackByProp\"\n        [columns]=\"columns\"\n        [pageSize]=\"pageSize\"\n        [offsetX]=\"offsetX\"\n        [rowDetail]=\"rowDetail\"\n        [selected]=\"selected\"\n        [innerWidth]=\"innerWidth\"\n        [bodyHeight]=\"bodyHeight\"\n        [selectionType]=\"selectionType\"\n        [emptyMessage]=\"messages.emptyMessage\"\n        [rowIdentity]=\"rowIdentity\"\n        [rowClass]=\"rowClass\"\n        [selectCheck]=\"selectCheck\"\n        (page)=\"onBodyPage($event)\"\n        (activate)=\"activate.emit($event)\"\n        (rowContextmenu)=\"onRowContextmenu($event)\"\n        (select)=\"onBodySelect($event)\"\n        (scroll)=\"onBodyScroll($event)\">\n      </datatable-body>\n      <datatable-footer\n        *ngIf=\"footerHeight\"\n        [rowCount]=\"rowCount\"\n        [pageSize]=\"pageSize\"\n        [offset]=\"offset\"\n        [footerHeight]=\"footerHeight\"\n        [footerTemplate]=\"footer\"\n        [totalMessage]=\"messages.totalMessage\"\n        [pagerLeftArrowIcon]=\"cssClasses.pagerLeftArrow\"\n        [pagerRightArrowIcon]=\"cssClasses.pagerRightArrow\"\n        [pagerPreviousIcon]=\"cssClasses.pagerPrevious\"\n        [selectedCount]=\"selected.length\"\n        [selectedMessage]=\"!!selectionType && messages.selectedMessage\"\n        [pagerNextIcon]=\"cssClasses.pagerNext\"\n        (page)=\"onFooterPage($event)\">\n      </datatable-footer>\n    </div>\n  ",
+                    encapsulation: core_1.ViewEncapsulation.None,
+                    styleUrls: ['./datatable.component.css'],
+                    host: {
+                        class: 'ngx-datatable'
+                    }
+                },] },
+    ];
+    /** @nocollapse */
+    DatatableComponent.ctorParameters = function () { return [
+        { type: index$6.ScrollbarHelper, },
+        { type: core_1.ElementRef, },
+        { type: core_1.KeyValueDiffers, },
+    ]; };
+    DatatableComponent.propDecorators = {
+        'rows': [{ type: core_1.Input },],
+        'columns': [{ type: core_1.Input },],
+        'selected': [{ type: core_1.Input },],
+        'scrollbarV': [{ type: core_1.Input },],
+        'scrollbarH': [{ type: core_1.Input },],
+        'rowHeight': [{ type: core_1.Input },],
+        'columnMode': [{ type: core_1.Input },],
+        'headerHeight': [{ type: core_1.Input },],
+        'footerHeight': [{ type: core_1.Input },],
+        'externalPaging': [{ type: core_1.Input },],
+        'externalSorting': [{ type: core_1.Input },],
+        'limit': [{ type: core_1.Input },],
+        'count': [{ type: core_1.Input },],
+        'offset': [{ type: core_1.Input },],
+        'loadingIndicator': [{ type: core_1.Input },],
+        'selectionType': [{ type: core_1.Input },],
+        'reorderable': [{ type: core_1.Input },],
+        'sortType': [{ type: core_1.Input },],
+        'sorts': [{ type: core_1.Input },],
+        'cssClasses': [{ type: core_1.Input },],
+        'messages': [{ type: core_1.Input },],
+        'rowIdentity': [{ type: core_1.Input },],
+        'rowClass': [{ type: core_1.Input },],
+        'selectCheck': [{ type: core_1.Input },],
+        'trackByProp': [{ type: core_1.Input },],
+        'scroll': [{ type: core_1.Output },],
+        'activate': [{ type: core_1.Output },],
+        'select': [{ type: core_1.Output },],
+        'sort': [{ type: core_1.Output },],
+        'page': [{ type: core_1.Output },],
+        'reorder': [{ type: core_1.Output },],
+        'resize': [{ type: core_1.Output },],
+        'tableContextmenu': [{ type: core_1.Output },],
+        'isFixedHeader': [{ type: core_1.HostBinding, args: ['class.fixed-header',] },],
+        'isFixedRow': [{ type: core_1.HostBinding, args: ['class.fixed-row',] },],
+        'isVertScroll': [{ type: core_1.HostBinding, args: ['class.scroll-vertical',] },],
+        'isHorScroll': [{ type: core_1.HostBinding, args: ['class.scroll-horz',] },],
+        'isSelectable': [{ type: core_1.HostBinding, args: ['class.selectable',] },],
+        'isCheckboxSelection': [{ type: core_1.HostBinding, args: ['class.checkbox-selection',] },],
+        'isCellSelection': [{ type: core_1.HostBinding, args: ['class.cell-selection',] },],
+        'isSingleSelection': [{ type: core_1.HostBinding, args: ['class.single-selection',] },],
+        'isMultiSelection': [{ type: core_1.HostBinding, args: ['class.multi-selection',] },],
+        'isMultiClickSelection': [{ type: core_1.HostBinding, args: ['class.multi-click-selection',] },],
+        'columnTemplates': [{ type: core_1.ContentChildren, args: [index$10.DataTableColumnDirective,] },],
+        'rowDetail': [{ type: core_1.ContentChild, args: [index$12.DatatableRowDetailDirective,] },],
+        'footer': [{ type: core_1.ContentChild, args: [index$14.DatatableFooterDirective,] },],
+        'bodyComponent': [{ type: core_1.ViewChild, args: [index$8.DataTableBodyComponent,] },],
+        'onWindowResize': [{ type: core_1.HostListener, args: ['window:resize',] },],
+    };
+    __decorate([
+        index$4.throttleable(5),
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", []),
+        __metadata("design:returntype", void 0)
+    ], DatatableComponent.prototype, "onWindowResize", null);
     return DatatableComponent;
 }());
-DatatableComponent.decorators = [
-    { type: core_1.Component, args: [{
-                selector: 'ngx-datatable',
-                template: "\n    <div\n      visibilityObserver\n      (visible)=\"recalculate()\">\n      <datatable-header\n        *ngIf=\"headerHeight\"\n        [sorts]=\"sorts\"\n        [sortType]=\"sortType\"\n        [scrollbarH]=\"scrollbarH\"\n        [innerWidth]=\"innerWidth\"\n        [offsetX]=\"offsetX\"\n        [columns]=\"columns\"\n        [headerHeight]=\"headerHeight\"\n        [reorderable]=\"reorderable\"\n        [sortAscendingIcon]=\"cssClasses.sortAscending\"\n        [sortDescendingIcon]=\"cssClasses.sortDescending\"\n        [allRowsSelected]=\"allRowsSelected\"\n        [selectionType]=\"selectionType\"\n        (sort)=\"onColumnSort($event)\"\n        (resize)=\"onColumnResize($event)\"\n        (reorder)=\"onColumnReorder($event)\"\n        (select)=\"onHeaderSelect($event)\"\n        (columnContextmenu)=\"onColumnContextmenu($event)\">\n      </datatable-header>\n      <datatable-body\n        [rows]=\"rows\"\n        [scrollbarV]=\"scrollbarV\"\n        [scrollbarH]=\"scrollbarH\"\n        [loadingIndicator]=\"loadingIndicator\"\n        [externalPaging]=\"externalPaging\"\n        [rowHeight]=\"rowHeight\"\n        [rowCount]=\"rowCount\"\n        [offset]=\"offset\"\n        [trackByProp]=\"trackByProp\"\n        [columns]=\"columns\"\n        [pageSize]=\"pageSize\"\n        [offsetX]=\"offsetX\"\n        [rowDetail]=\"rowDetail\"\n        [selected]=\"selected\"\n        [innerWidth]=\"innerWidth\"\n        [bodyHeight]=\"bodyHeight\"\n        [selectionType]=\"selectionType\"\n        [emptyMessage]=\"messages.emptyMessage\"\n        [rowIdentity]=\"rowIdentity\"\n        [rowClass]=\"rowClass\"\n        [selectCheck]=\"selectCheck\"\n        (page)=\"onBodyPage($event)\"\n        (activate)=\"activate.emit($event)\"\n        (rowContextmenu)=\"onRowContextmenu($event)\"\n        (select)=\"onBodySelect($event)\"\n        (scroll)=\"onBodyScroll($event)\">\n      </datatable-body>\n      <datatable-footer\n        *ngIf=\"footerHeight\"\n        [rowCount]=\"rowCount\"\n        [pageSize]=\"pageSize\"\n        [offset]=\"offset\"\n        [footerHeight]=\"footerHeight\"\n        [footerTemplate]=\"footer\"\n        [totalMessage]=\"messages.totalMessage\"\n        [pagerLeftArrowIcon]=\"cssClasses.pagerLeftArrow\"\n        [pagerRightArrowIcon]=\"cssClasses.pagerRightArrow\"\n        [pagerPreviousIcon]=\"cssClasses.pagerPrevious\"\n        [selectedCount]=\"selected.length\"\n        [selectedMessage]=\"!!selectionType && messages.selectedMessage\"\n        [pagerNextIcon]=\"cssClasses.pagerNext\"\n        (page)=\"onFooterPage($event)\">\n      </datatable-footer>\n    </div>\n  ",
-                encapsulation: core_1.ViewEncapsulation.None,
-                styleUrls: ['./datatable.component.css'],
-                host: {
-                    class: 'ngx-datatable'
-                }
-            },] },
-];
-/** @nocollapse */
-DatatableComponent.ctorParameters = function () { return [
-    { type: index$6.ScrollbarHelper, },
-    { type: core_1.ElementRef, },
-    { type: core_1.KeyValueDiffers, },
-]; };
-DatatableComponent.propDecorators = {
-    'rows': [{ type: core_1.Input },],
-    'columns': [{ type: core_1.Input },],
-    'selected': [{ type: core_1.Input },],
-    'scrollbarV': [{ type: core_1.Input },],
-    'scrollbarH': [{ type: core_1.Input },],
-    'rowHeight': [{ type: core_1.Input },],
-    'columnMode': [{ type: core_1.Input },],
-    'headerHeight': [{ type: core_1.Input },],
-    'footerHeight': [{ type: core_1.Input },],
-    'externalPaging': [{ type: core_1.Input },],
-    'externalSorting': [{ type: core_1.Input },],
-    'limit': [{ type: core_1.Input },],
-    'count': [{ type: core_1.Input },],
-    'offset': [{ type: core_1.Input },],
-    'loadingIndicator': [{ type: core_1.Input },],
-    'selectionType': [{ type: core_1.Input },],
-    'reorderable': [{ type: core_1.Input },],
-    'sortType': [{ type: core_1.Input },],
-    'sorts': [{ type: core_1.Input },],
-    'cssClasses': [{ type: core_1.Input },],
-    'messages': [{ type: core_1.Input },],
-    'rowIdentity': [{ type: core_1.Input },],
-    'rowClass': [{ type: core_1.Input },],
-    'selectCheck': [{ type: core_1.Input },],
-    'trackByProp': [{ type: core_1.Input },],
-    'scroll': [{ type: core_1.Output },],
-    'activate': [{ type: core_1.Output },],
-    'select': [{ type: core_1.Output },],
-    'sort': [{ type: core_1.Output },],
-    'page': [{ type: core_1.Output },],
-    'reorder': [{ type: core_1.Output },],
-    'resize': [{ type: core_1.Output },],
-    'tableContextmenu': [{ type: core_1.Output },],
-    'isFixedHeader': [{ type: core_1.HostBinding, args: ['class.fixed-header',] },],
-    'isFixedRow': [{ type: core_1.HostBinding, args: ['class.fixed-row',] },],
-    'isVertScroll': [{ type: core_1.HostBinding, args: ['class.scroll-vertical',] },],
-    'isHorScroll': [{ type: core_1.HostBinding, args: ['class.scroll-horz',] },],
-    'isSelectable': [{ type: core_1.HostBinding, args: ['class.selectable',] },],
-    'isCheckboxSelection': [{ type: core_1.HostBinding, args: ['class.checkbox-selection',] },],
-    'isCellSelection': [{ type: core_1.HostBinding, args: ['class.cell-selection',] },],
-    'isSingleSelection': [{ type: core_1.HostBinding, args: ['class.single-selection',] },],
-    'isMultiSelection': [{ type: core_1.HostBinding, args: ['class.multi-selection',] },],
-    'isMultiClickSelection': [{ type: core_1.HostBinding, args: ['class.multi-click-selection',] },],
-    'columnTemplates': [{ type: core_1.ContentChildren, args: [index$10.DataTableColumnDirective,] },],
-    'rowDetail': [{ type: core_1.ContentChild, args: [index$12.DatatableRowDetailDirective,] },],
-    'footer': [{ type: core_1.ContentChild, args: [index$14.DatatableFooterDirective,] },],
-    'bodyComponent': [{ type: core_1.ViewChild, args: [index$8.DataTableBodyComponent,] },],
-    'onWindowResize': [{ type: core_1.HostListener, args: ['window:resize',] },],
-};
-__decorate([
-    index$4.throttleable(5),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], DatatableComponent.prototype, "onWindowResize", null);
 exports.DatatableComponent = DatatableComponent;
 
 });
@@ -77932,20 +78354,20 @@ var VisibilityDirective = (function () {
         };
         setTimeout(function () { return check(); });
     };
+    VisibilityDirective.decorators = [
+        { type: core_1.Directive, args: [{ selector: '[visibilityObserver]' },] },
+    ];
+    /** @nocollapse */
+    VisibilityDirective.ctorParameters = function () { return [
+        { type: core_1.ElementRef, },
+        { type: core_1.NgZone, },
+    ]; };
+    VisibilityDirective.propDecorators = {
+        'isVisible': [{ type: core_1.HostBinding, args: ['class.visible',] },],
+        'visible': [{ type: core_1.Output },],
+    };
     return VisibilityDirective;
 }());
-VisibilityDirective.decorators = [
-    { type: core_1.Directive, args: [{ selector: '[visibilityObserver]' },] },
-];
-/** @nocollapse */
-VisibilityDirective.ctorParameters = function () { return [
-    { type: core_1.ElementRef, },
-    { type: core_1.NgZone, },
-]; };
-VisibilityDirective.propDecorators = {
-    'isVisible': [{ type: core_1.HostBinding, args: ['class.visible',] },],
-    'visible': [{ type: core_1.Output },],
-};
 exports.VisibilityDirective = VisibilityDirective;
 
 });
@@ -77986,7 +78408,7 @@ function View_DataTableRowWrapperComponent_3(_l) {
 }
 function View_DataTableRowWrapperComponent_2(_l) {
     return viewDef(0, [(_l()(), anchorDef(16777216, null, null, 2, null, View_DataTableRowWrapperComponent_3)), directiveDef(540672, null, 0, NgTemplateOutlet, [ViewContainerRef], { ngTemplateOutlet: [0, 'ngTemplateOutlet'], ngOutletContext: [1,
-                'ngOutletContext'] }, null), pureObjectDef(['row']), (_l()(), anchorDef(0, null, null, 0))], function (_ck, _v) {
+                'ngOutletContext'] }, null), pureObjectDef({ row: 0 }), (_l()(), anchorDef(0, null, null, 0))], function (_ck, _v) {
         var _co = _v.component;
         var currVal_0 = _co.rowDetail.template;
         var currVal_1 = _ck(_v, 2, 0, _co.row);
@@ -78066,8 +78488,8 @@ function View_DataTableBodyCellComponent_4(_l) {
 }
 function View_DataTableBodyCellComponent_3(_l) {
     return viewDef(0, [(_l()(), anchorDef(16777216, [[1, 3], ['cellTemplate', 2]], null, 2, null, View_DataTableBodyCellComponent_4)), directiveDef(540672, null, 0, NgTemplateOutlet, [ViewContainerRef], { ngTemplateOutlet: [0, 'ngTemplateOutlet'],
-            ngOutletContext: [1, 'ngOutletContext'] }, null), pureObjectDef(['value', 'row',
-            'column', 'isSelected', 'onCheckboxChangeFn', 'activateFn']), (_l()(), anchorDef(0, null, null, 0))], function (_ck, _v) {
+            ngOutletContext: [1, 'ngOutletContext'] }, null), pureObjectDef({ value: 0, row: 1,
+            column: 2, isSelected: 3, onCheckboxChangeFn: 4, activateFn: 5 }), (_l()(), anchorDef(0, null, null, 0))], function (_ck, _v) {
         var _co = _v.component;
         var currVal_0 = _co.column.cellTemplate;
         var currVal_1 = _ck(_v, 2, 0, _co.value, _co.row, _co.column, _co.isSelected, _co.onCheckboxChangeFn, _co.activateFn);
@@ -78451,7 +78873,7 @@ var DataTableBodyComponentNgFactory = createComponentFactory('datatable-body', b
  * @suppress {suspiciousCode,uselessCode,missingProperties,missingOverride}
  */
 /* tslint:disable */
-var styles_DatatableComponent = [styles$3];
+var styles_DatatableComponent = [styles];
 var RenderType_DatatableComponent = createRendererType2({ encapsulation: 2,
     styles: styles_DatatableComponent, data: {} });
 function View_DatatableComponent_1(_l) {
@@ -78671,8 +79093,8 @@ var DatatableComponentNgFactory = createComponentFactory('ngx-datatable', datata
  * @suppress {suspiciousCode,uselessCode,missingProperties,missingOverride}
  */
 /* tslint:disable */
-var styles_AdReportComponent = [styles$2];
-var RenderType_AdReportComponent = createRendererType2({ encapsulation: 0,
+var styles_AdReportComponent = [];
+var RenderType_AdReportComponent = createRendererType2({ encapsulation: 2,
     styles: styles_AdReportComponent, data: {} });
 function View_AdReportComponent_0(_l) {
     return viewDef(0, [queryDef(402653184, 1, { table: 0 }), (_l()(), elementDef(0, null, null, 1, 'h1', [], null, null, null, null, null)), (_l()(), textDef(null, ['Analytics Report'])),
@@ -78731,16 +79153,8 @@ var AdReportComponentNgFactory = createComponentFactory('ads-report', AdReportCo
  * @suppress {suspiciousCode,uselessCode,missingProperties,missingOverride}
  */
 /* tslint:disable */
-var styles$4 = ['body[_ngcontent-%COMP%] {\n    padding: 0 1%;\n    margin: 0;\n    font-family: "Helvetica Neue", "Calibri Light", Roboto, sans-serif;\n    font-size: 16px;\n}\n\n.datatable[_ngcontent-%COMP%] {\n    height: 70vh;\n\n    &.material {\n        .datatable-header {\n            background-color: #4e9a06;\n\n            .datatable-header-cell {\n                color: #ffffff;\n\n                &.sort-active {\n                    background-color: #73d216;\n                }\n            }\n        }\n    }\n}\n\na[_ngcontent-%COMP%] {\n    color: black;\n    text-decoration: none;\n\n    &:visited {\n        color: black;\n    }\n}\n\n.headline[_ngcontent-%COMP%] {\n    font-size: 2em;\n    color: #00aa4f;\n    text-align: center;\n}\n\nnav[_ngcontent-%COMP%] {\n    text-align: center;\n\n    a {\n        border-left: 1px solid #b2cb7a;\n        color: black;\n        padding: 0.5em;\n        font-size: 1.2em;\n\n        &:first-of-type {\n            border-left: none;\n        }\n\n        &:hover {\n            text-decoration: underline;\n        }\n    }\n\n    .active {\n        font-weight: bold;\n    }\n}'];
-
-/**
- * @fileoverview This file is generated by the Angular template compiler.
- * Do not edit.
- * @suppress {suspiciousCode,uselessCode,missingProperties,missingOverride}
- */
-/* tslint:disable */
-var styles_AppComponent = [styles$4];
-var RenderType_AppComponent = createRendererType2({ encapsulation: 0, styles: styles_AppComponent,
+var styles_AppComponent = [];
+var RenderType_AppComponent = createRendererType2({ encapsulation: 2, styles: styles_AppComponent,
     data: {} });
 function View_AppComponent_0(_l) {
     return viewDef(0, [(_l()(), elementDef(0, null, null, 7, 'header', [['class',
@@ -78810,57 +79224,57 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var NgxDatatableModule = (function () {
     function NgxDatatableModule() {
     }
+    NgxDatatableModule.decorators = [
+        { type: core_1.NgModule, args: [{
+                    imports: [
+                        common_1.CommonModule
+                    ],
+                    providers: [
+                        index$6.ScrollbarHelper
+                    ],
+                    declarations: [
+                        index$16.DataTableFooterTemplateDirective,
+                        index$20.VisibilityDirective,
+                        index$20.DraggableDirective,
+                        index$20.ResizeableDirective,
+                        index$20.OrderableDirective,
+                        index$20.LongPressDirective,
+                        index$16.ScrollerComponent,
+                        index$16.DatatableComponent,
+                        index$16.DataTableColumnDirective,
+                        index$16.DataTableHeaderComponent,
+                        index$16.DataTableHeaderCellComponent,
+                        index$16.DataTableBodyComponent,
+                        index$16.DataTableFooterComponent,
+                        index$16.DataTablePagerComponent,
+                        index$16.ProgressBarComponent,
+                        index$16.DataTableBodyRowComponent,
+                        index$16.DataTableRowWrapperComponent,
+                        index$16.DatatableRowDetailDirective,
+                        index$16.DatatableRowDetailTemplateDirective,
+                        index$16.DataTableBodyCellComponent,
+                        index$16.DataTableSelectionComponent,
+                        index$16.DataTableColumnHeaderDirective,
+                        index$16.DataTableColumnCellDirective,
+                        index$16.DatatableFooterDirective
+                    ],
+                    exports: [
+                        index$16.DatatableComponent,
+                        index$16.DatatableRowDetailDirective,
+                        index$16.DatatableRowDetailTemplateDirective,
+                        index$16.DataTableColumnDirective,
+                        index$16.DataTableColumnHeaderDirective,
+                        index$16.DataTableColumnCellDirective,
+                        index$16.DataTableFooterTemplateDirective,
+                        index$16.DatatableFooterDirective,
+                        index$16.DataTablePagerComponent
+                    ]
+                },] },
+    ];
+    /** @nocollapse */
+    NgxDatatableModule.ctorParameters = function () { return []; };
     return NgxDatatableModule;
 }());
-NgxDatatableModule.decorators = [
-    { type: core_1.NgModule, args: [{
-                imports: [
-                    common_1.CommonModule
-                ],
-                providers: [
-                    index$6.ScrollbarHelper
-                ],
-                declarations: [
-                    index$16.DataTableFooterTemplateDirective,
-                    index$20.VisibilityDirective,
-                    index$20.DraggableDirective,
-                    index$20.ResizeableDirective,
-                    index$20.OrderableDirective,
-                    index$20.LongPressDirective,
-                    index$16.ScrollerComponent,
-                    index$16.DatatableComponent,
-                    index$16.DataTableColumnDirective,
-                    index$16.DataTableHeaderComponent,
-                    index$16.DataTableHeaderCellComponent,
-                    index$16.DataTableBodyComponent,
-                    index$16.DataTableFooterComponent,
-                    index$16.DataTablePagerComponent,
-                    index$16.ProgressBarComponent,
-                    index$16.DataTableBodyRowComponent,
-                    index$16.DataTableRowWrapperComponent,
-                    index$16.DatatableRowDetailDirective,
-                    index$16.DatatableRowDetailTemplateDirective,
-                    index$16.DataTableBodyCellComponent,
-                    index$16.DataTableSelectionComponent,
-                    index$16.DataTableColumnHeaderDirective,
-                    index$16.DataTableColumnCellDirective,
-                    index$16.DatatableFooterDirective
-                ],
-                exports: [
-                    index$16.DatatableComponent,
-                    index$16.DatatableRowDetailDirective,
-                    index$16.DatatableRowDetailTemplateDirective,
-                    index$16.DataTableColumnDirective,
-                    index$16.DataTableColumnHeaderDirective,
-                    index$16.DataTableColumnCellDirective,
-                    index$16.DataTableFooterTemplateDirective,
-                    index$16.DatatableFooterDirective,
-                    index$16.DataTablePagerComponent
-                ]
-            },] },
-];
-/** @nocollapse */
-NgxDatatableModule.ctorParameters = function () { return []; };
 exports.NgxDatatableModule = NgxDatatableModule;
 
 });
@@ -78891,7 +79305,7 @@ var AppModuleNgFactory = createNgModuleFactory(AppModule, [AppComponent], functi
         moduleProvideDef(4608, Testability, Testability, [NgZone]), moduleProvideDef(4608, Meta, Meta, [DOCUMENT]), moduleProvideDef(4608, Title, Title, [DOCUMENT]),
         moduleProvideDef(4608, BrowserXhr, BrowserXhr, []), moduleProvideDef(4608, ResponseOptions, BaseResponseOptions, []), moduleProvideDef(5120, XSRFStrategy, _createDefaultCookieXSRFStrategy, []), moduleProvideDef(4608, XHRBackend, XHRBackend, [BrowserXhr,
             ResponseOptions, XSRFStrategy]), moduleProvideDef(4608, RequestOptions, BaseRequestOptions, []), moduleProvideDef(5120, Http, httpFactory, [XHRBackend,
-            RequestOptions]), moduleProvideDef(4608, RadioControlRegistry, RadioControlRegistry, []), moduleProvideDef(4608, FormBuilder, FormBuilder, []), moduleProvideDef(4608, AnimationBuilder, BrowserAnimationBuilder, [RendererFactory2]), moduleProvideDef(4608, scrollbarHelper_service_1, scrollbarHelper_service_1, [DOCUMENT]), moduleProvideDef(5120, ActivatedRoute, rootRoute, [Router]), moduleProvideDef(4608, NoPreloading, NoPreloading, []),
+            RequestOptions]), moduleProvideDef(4608, RadioControlRegistry, RadioControlRegistry, []), moduleProvideDef(4608, FormBuilder, FormBuilder, []), moduleProvideDef(4608, AnimationBuilder, BrowserAnimationBuilder, [RendererFactory2]), moduleProvideDef(4608, scrollbarHelper_service_1, scrollbarHelper_service_1, [DOCUMENT$1]), moduleProvideDef(5120, ActivatedRoute, rootRoute, [Router]), moduleProvideDef(4608, NoPreloading, NoPreloading, []),
         moduleProvideDef(6144, PreloadingStrategy, null, [NoPreloading]), moduleProvideDef(135680, RouterPreloader, RouterPreloader, [Router, NgModuleFactoryLoader,
             Compiler, Injector, PreloadingStrategy]), moduleProvideDef(4608, PreloadAllModules, PreloadAllModules, []), moduleProvideDef(5120, ROUTER_INITIALIZER, getBootstrapListener, [RouterInitializer]), moduleProvideDef(5120, APP_BOOTSTRAP_LISTENER, function (p0_0) {
             return [p0_0];
