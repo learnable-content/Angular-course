@@ -6,6 +6,8 @@ import { FormsModule } from "@angular/forms";
 import { NgxDatatableModule } from "@swimlane/ngx-datatable";
 import { ExampleModule } from "./examples/example.module";
 
+import { AnalyticsService } from "./shared/analytics.service";
+import { UniverseService } from "./shared/universe.service";
 import { AppComponent } from "./app.component";
 import { HomeComponent } from "./home.component";
 import { EventViewComponent } from "./events/event-view.component";
@@ -35,6 +37,10 @@ const appRoutes: Routes = [
         EventViewComponent,
         AdViewComponent,
         AdReportComponent
+    ],
+    providers: [
+        AnalyticsService,
+        UniverseService
     ],
     bootstrap: [ AppComponent ]
 })
